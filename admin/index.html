@@ -3,207 +3,418 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Inventory Dashboard</title>
+    <title>FreshCart - Inventory Management</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/admin/style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body>
-    <aside class="sidebar">
-        <div class="brand">📦 Inventory<span>OS</span></div>
+<body class="bg-[#edf2f7] min-h-screen text-slate-800 p-3 sm:p-6 lg:p-8 flex items-center justify-center font-sans antialiased">
 
-        <nav>
-            <a class="active" href="#overview">Dashboard</a>
-            <a href="#inventory">Inventory</a>
-            <a href="#alerts">Stock Alerts</a>
-            <a href="#activity">RFID Activity</a>
-        </nav>
+    <!-- Main Outer Container / Rounded Window Card -->
+    <div class="w-full max-w-[1520px] bg-white rounded-[28px] shadow-2xl shadow-slate-300/60 border border-slate-200/70 overflow-hidden flex flex-col lg:flex-row min-h-[920px]">
 
-        <div class="sidebar-footer">
-            <span class="connection-dot"></span>
-            <span id="connectionStatus">Connecting to Firebase...</span>
-        </div>
-    </aside>
-
-    <main class="main-content">
-        <header class="topbar">
+        <!-- Left Sidebar Navigation -->
+        <aside class="w-full lg:w-64 bg-white border-r border-slate-100 flex flex-col justify-between p-6 shrink-0">
             <div>
-                <p class="eyebrow">INVENTORY MANAGEMENT</p>
-                <h1>Dashboard</h1>
-                <p class="subtitle">Monitor products, stock levels and expiry dates.</p>
-            </div>
-
-            <button class="primary-button" id="addProductBtn">
-                + Add Product
-            </button>
-        </header>
-
-        <section id="overview" class="summary-grid">
-            <article class="summary-card">
-                <div class="card-label">Total Products</div>
-                <div class="card-value" id="totalProducts">0</div>
-                <div class="card-note">Registered inventory items</div>
-            </article>
-
-            <article class="summary-card">
-                <div class="card-label">Total Stock Units</div>
-                <div class="card-value" id="totalUnits">0</div>
-                <div class="card-note">Units currently available</div>
-            </article>
-
-            <article class="summary-card">
-                <div class="card-label">Low Stock</div>
-                <div class="card-value warning-text" id="lowStock">0</div>
-                <div class="card-note">Stock from 1 to 5 units</div>
-            </article>
-
-            <article class="summary-card">
-                <div class="card-label">Out of Stock</div>
-                <div class="card-value danger-text" id="outOfStock">0</div>
-                <div class="card-note">Products requiring restocking</div>
-            </article>
-        </section>
-
-        <section id="alerts" class="panel">
-            <div class="section-heading">
-                <div>
-                    <h2>Inventory Alerts</h2>
-                    <p>Products that require attention</p>
+                <!-- FreshCart Logo -->
+                <div class="flex items-center space-x-3 mb-8 px-2">
+                    <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/30">
+                        <i class="fas fa-bag-shopping text-lg"></i>
+                    </div>
+                    <span class="text-xl font-extrabold tracking-tight text-slate-900">FreshCart</span>
                 </div>
-            </div>
-            <div id="stockAlerts" class="alerts-grid">
-                <p class="empty-state">Loading inventory alerts...</p>
-            </div>
-        </section>
 
-        <section id="inventory" class="panel">
-            <div class="section-heading">
-                <div>
-                    <h2>Product Inventory</h2>
-                    <p>Live inventory data from Firebase</p>
+                <!-- Main Section -->
+                <div class="mb-6">
+                    <p class="text-[11px] font-bold tracking-wider uppercase text-slate-400 px-3 mb-2.5">Main</p>
+                    <nav class="space-y-1">
+                        <a href="#overview" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                            <i class="fas fa-table-cells-large text-slate-400 w-4 text-center"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="#orders" onclick="alert('Orders module connected to Trolley Checkouts.')" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                            <i class="fas fa-cart-shopping text-slate-400 w-4 text-center"></i>
+                            <span>Orders</span>
+                        </a>
+                        <!-- Active Item: Inventory -->
+                        <a href="#inventory" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-brand-600 bg-brand-50 transition shadow-sm border border-brand-100/80">
+                            <i class="fas fa-box-archive text-brand-600 w-4 text-center"></i>
+                            <span>Inventory</span>
+                        </a>
+                        <a href="#customers" onclick="alert('Customer portal active at /')" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                            <i class="fas fa-users text-slate-400 w-4 text-center"></i>
+                            <span>Customers</span>
+                        </a>
+                        <a href="#activity" id="navRfidBtn" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                            <i class="fas fa-chart-line text-slate-400 w-4 text-center"></i>
+                            <span>Reports &amp; Analytics</span>
+                        </a>
+                    </nav>
                 </div>
-                <button class="secondary-button" id="refreshBtn">Refresh</button>
-            </div>
 
-            <div class="filters">
-                <input
-                    type="search"
-                    id="searchInput"
-                    placeholder="Search product name or RFID UID..."
-                >
-
-                <select id="categoryFilter">
-                    <option value="all">All categories</option>
-                </select>
-            </div>
-
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>RFID UID</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Stock</th>
-                            <th>Expiry Date</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="productsBody">
-                        <tr>
-                            <td colspan="8" class="empty-state">
-                                Connecting to Firebase...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <section id="activity" class="panel">
-            <div class="section-heading">
+                <!-- Other Section -->
                 <div>
-                    <h2>Recent RFID Activity</h2>
-                    <p>Latest scans recorded by the ESP32</p>
+                    <p class="text-[11px] font-bold tracking-wider uppercase text-slate-400 px-3 mb-2.5">Other</p>
+                    <nav class="space-y-1">
+                        <a href="#settings" onclick="openAddDialog()" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                            <i class="fas fa-gear text-slate-400 w-4 text-center"></i>
+                            <span>Settings</span>
+                        </a>
+                        <a href="#help" onclick="alert('Supermarket Inventory Admin: Connect with Shrikar / IoT Smart Trolley Team')" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                            <i class="fas fa-circle-question text-slate-400 w-4 text-center"></i>
+                            <span>Help/Support</span>
+                        </a>
+                        <a href="/" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition">
+                            <i class="fas fa-arrow-right-from-bracket text-slate-400 w-4 text-center"></i>
+                            <span>Customer Portal</span>
+                        </a>
+                    </nav>
                 </div>
             </div>
 
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>RFID UID</th>
-                            <th>Event</th>
-                            <th>Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody id="scanHistory">
-                        <tr>
-                            <td colspan="4" class="empty-state">
-                                Waiting for RFID activity...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <footer>
-            Smart Inventory Management · ESP32 + RFID + Firebase
-        </footer>
-    </main>
-
-    <dialog id="productDialog">
-        <form id="productForm">
-            <div class="dialog-heading">
-                <div>
-                    <h2 id="dialogTitle">Add Product</h2>
-                    <p>Enter the inventory details below.</p>
+            <!-- Support Box Card at Bottom -->
+            <div class="mt-8 relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-100 via-teal-50 to-emerald-200/50 p-4 border border-emerald-200/60 shadow-sm">
+                <div class="relative z-10">
+                    <h5 class="text-xs font-extrabold text-emerald-950">Need Help?</h5>
+                    <p class="text-[11px] text-emerald-800/80 mt-0.5 font-medium leading-tight">Contact support team</p>
+                    <button onclick="window.open('https://github.com/shrikargs7-cloud/smart-shopping-trolley-iot', '_blank')" class="mt-3 w-full bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold py-2 px-3 rounded-xl transition shadow-sm">
+                        Get Support
+                    </button>
                 </div>
-                <button type="button" class="close-button" id="closeDialog">×</button>
+                <!-- Soft abstract background circles -->
+                <div class="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-emerald-300/30 blur-lg"></div>
+            </div>
+        </aside>
+
+        <!-- Right Main Content Area -->
+        <main class="flex-1 p-6 sm:p-8 lg:p-10 overflow-y-auto bg-white flex flex-col gap-6">
+
+            <!-- Top Header Bar -->
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">Inventory Management</h1>
+                    <p class="text-xs text-slate-400 mt-1 font-medium">Monitor stock levels and manage product inventory.</p>
+                </div>
+
+                <div class="flex items-center space-x-3.5 self-start md:self-auto">
+                    <!-- Global Search Bar -->
+                    <div class="relative">
+                        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input id="globalSearchInput" type="text" placeholder="Search users, orders, products..."
+                               class="w-64 sm:w-80 bg-slate-50 border border-slate-200/80 rounded-full pl-9 pr-4 py-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition">
+                    </div>
+
+                    <!-- Notification Bell -->
+                    <button id="notificationBtn" title="View RFID scans" class="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition relative">
+                        <i class="far fa-bell text-xs"></i>
+                        <span id="notifDot" class="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    </button>
+
+                    <!-- Admin Profile Card -->
+                    <div class="flex items-center space-x-3 pl-2 border-l border-slate-200">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Admin"
+                             class="w-9 h-9 rounded-full object-cover ring-2 ring-slate-100">
+                        <div class="hidden sm:block text-left">
+                            <p class="text-xs font-bold text-slate-900 leading-tight">Admin User</p>
+                            <p class="text-[10px] text-slate-400 font-medium">admin@company.com</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 4 KPI Stat Cards -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Card 1: Total Products -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-sm flex items-center justify-between hover:shadow-md transition">
+                    <div>
+                        <p class="text-xs font-medium text-slate-400">Total Products</p>
+                        <div class="flex items-baseline space-x-2 mt-1">
+                            <span id="totalProducts" class="text-2xl font-black text-slate-900">1,247</span>
+                            <span class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center">
+                                +54% <i class="fas fa-arrow-up-right text-[8px] ml-1"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center text-lg">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                </div>
+
+                <!-- Card 2: Low Stock -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-sm flex items-center justify-between hover:shadow-md transition">
+                    <div>
+                        <p class="text-xs font-medium text-slate-400">Low Stock</p>
+                        <div class="flex items-baseline space-x-2 mt-1">
+                            <span id="lowStock" class="text-2xl font-black text-slate-900">34</span>
+                            <span class="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center">
+                                -10% <i class="fas fa-arrow-down-right text-[8px] ml-1"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-lg">
+                        <i class="fas fa-triangle-exclamation"></i>
+                    </div>
+                </div>
+
+                <!-- Card 3: Out Of Stock -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-sm flex items-center justify-between hover:shadow-md transition">
+                    <div>
+                        <p class="text-xs font-medium text-slate-400">Out Of Stock</p>
+                        <div class="flex items-baseline space-x-2 mt-1">
+                            <span id="outOfStock" class="text-2xl font-black text-slate-900">12</span>
+                            <span class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center">
+                                +54% <i class="fas fa-arrow-up-right text-[8px] ml-1"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                </div>
+
+                <!-- Card 4: Top Category -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-sm flex items-center justify-between hover:shadow-md transition">
+                    <div>
+                        <p class="text-xs font-medium text-slate-400">Top Category</p>
+                        <div class="flex items-baseline space-x-2 mt-1">
+                            <span id="topCategoryValue" class="text-2xl font-black text-slate-900">231</span>
+                            <span class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center">
+                                +54% <i class="fas fa-arrow-up-right text-[8px] ml-1"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-emerald-50 text-brand-600 flex items-center justify-center text-lg">
+                        <i class="fas fa-shapes"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Product Inventory Main Card -->
+            <section class="bg-white rounded-2xl border border-slate-200/70 shadow-sm p-6 flex flex-col gap-6">
+
+                <!-- Header: Title + Export / Add Product Buttons -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h2 class="text-lg font-black text-slate-900 tracking-tight">Product Inventory</h2>
+                    <div class="flex items-center space-x-2.5">
+                        <button id="addProductBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Product</span>
+                        </button>
+                        <button id="exportBtn" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition shadow-sm shadow-brand-600/30">
+                            <i class="fas fa-download text-xs"></i>
+                            <span>Export</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters & Controls Row -->
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+                    <!-- Status Filter Tabs -->
+                    <div class="flex items-center space-x-2 overflow-x-auto text-xs whitespace-nowrap">
+                        <button class="status-tab active px-3.5 py-1.5 rounded-full font-bold transition border" data-filter="all">All Products</button>
+                        <button class="status-tab px-3.5 py-1.5 rounded-full font-semibold transition border border-transparent text-slate-500 hover:text-slate-800" data-filter="in_stock">In Stock</button>
+                        <button class="status-tab px-3.5 py-1.5 rounded-full font-semibold transition border border-transparent text-slate-500 hover:text-slate-800" data-filter="low_stock">Low Stock</button>
+                        <button class="status-tab px-3.5 py-1.5 rounded-full font-semibold transition border border-transparent text-slate-500 hover:text-slate-800" data-filter="out_of_stock">Out Of Stock</button>
+                    </div>
+
+                    <!-- Search & Action Icons -->
+                    <div class="flex items-center space-x-2">
+                        <div class="relative">
+                            <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input id="searchInput" type="text" placeholder="Search..."
+                                   class="w-48 sm:w-60 bg-slate-50 border border-slate-200 rounded-full pl-8 pr-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition">
+                        </div>
+                        <button id="filterBtn" title="Filter by category" class="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 flex items-center justify-center text-xs transition">
+                            <i class="fas fa-sliders"></i>
+                        </button>
+                        <button id="sortBtn" title="Sort products" class="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 flex items-center justify-center text-xs transition">
+                            <i class="fas fa-arrow-down-wide-short"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Products Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="text-slate-400 font-semibold border-b border-slate-100">
+                                <th class="pb-3 pl-2">Product Name</th>
+                                <th class="pb-3">Category</th>
+                                <th class="pb-3">Stock Level</th>
+                                <th class="pb-3">Amount</th>
+                                <th class="pb-3">Supplier</th>
+                                <th class="pb-3 text-center">Status</th>
+                                <th class="pb-3 pr-2 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                            <tr>
+                                <td colspan="7" class="py-10 text-center text-slate-400">
+                                    <i class="fas fa-spinner fa-spin text-lg mr-2"></i> Loading inventory from Firebase...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Footer -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs">
+                    <button id="prevPageBtn" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 font-bold transition">
+                        <i class="fas fa-arrow-left text-[10px]"></i>
+                        <span>Previous</span>
+                    </button>
+
+                    <div id="paginationNumbers" class="flex items-center space-x-1">
+                        <span class="w-7 h-7 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center">1</span>
+                        <button class="w-7 h-7 rounded-full text-slate-600 hover:bg-slate-100 font-semibold flex items-center justify-center">2</button>
+                        <span class="text-slate-400 px-1">...</span>
+                        <button class="w-7 h-7 rounded-full text-slate-600 hover:bg-slate-100 font-semibold flex items-center justify-center">10</button>
+                    </div>
+
+                    <button id="nextPageBtn" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 font-bold transition">
+                        <span>Next</span>
+                        <i class="fas fa-arrow-right text-[10px]"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- RFID Scans History Panel -->
+            <section id="activity" class="bg-white rounded-2xl border border-slate-200/70 shadow-sm p-6 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-extrabold text-slate-900 flex items-center space-x-2">
+                            <i class="fas fa-rss text-brand-600"></i>
+                            <span>Live RFID Trolley Scans</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">Real-time RFID events streamed from ESP32</p>
+                    </div>
+                    <span id="connectionBadge" class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center space-x-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="connectionStatus">Connected</span>
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="text-slate-400 font-semibold border-b border-slate-100">
+                                <th class="pb-2.5 pl-2">Product</th>
+                                <th class="pb-2.5">RFID UID</th>
+                                <th class="pb-2.5">Event</th>
+                                <th class="pb-2.5 pr-2">Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scanHistory" class="divide-y divide-slate-100 text-slate-600 font-medium">
+                            <tr>
+                                <td colspan="4" class="py-6 text-center text-slate-400">
+                                    Waiting for RFID activity from ESP32...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add / Edit Product Modal -->
+    <dialog id="productDialog" class="rounded-3xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-lg w-full">
+        <form id="productForm" class="bg-white p-6 sm:p-8 rounded-3xl">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+                <div>
+                    <h3 id="dialogTitle" class="text-lg font-black text-slate-900">Add Product</h3>
+                    <p class="text-xs text-slate-400">Enter inventory &amp; RFID details below.</p>
+                </div>
+                <button type="button" id="closeDialog" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-sm">×</button>
             </div>
 
-            <label for="uid">RFID UID</label>
-            <input id="uid" required placeholder="Example: 43CE7728">
-
-            <label for="name">Product Name</label>
-            <input id="name" required placeholder="Example: Milk">
-
-            <label for="category">Category</label>
-            <input id="category" required placeholder="Example: Dairy">
-
-            <div class="form-row">
+            <div class="space-y-4 text-xs">
                 <div>
-                    <label for="price">Price (₹)</label>
-                    <input id="price" type="number" min="0" step="0.01" required>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">RFID UID (Hexadecimal)</label>
+                    <input id="uid" required placeholder="e.g. 43CE7728"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-mono text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
                 </div>
-                <div>
-                    <label for="stock">Stock Quantity</label>
-                    <input id="stock" type="number" min="0" step="1" required>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Product Name</label>
+                        <input id="name" required placeholder="e.g. Organic Bananas"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Category</label>
+                        <input id="category" required placeholder="e.g. Fruits"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Price (₹)</label>
+                        <input id="price" type="number" min="0" step="0.01" required placeholder="2.99"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Current Stock</label>
+                        <input id="stock" type="number" min="0" step="1" required placeholder="245"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Supplier / Rack Location</label>
+                        <input id="rack" placeholder="e.g. Fresh Farms Co. (Aisle 1, Rack A)"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Minimum Stock Alert</label>
+                        <input id="minStock" type="number" min="1" placeholder="100" value="100"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
+                    </div>
                 </div>
             </div>
 
-            <label for="quantity">Pack Size</label>
-            <input id="quantity" placeholder="Example: 500 ml">
+            <p id="formMessage" class="text-xs text-rose-500 mt-3 min-h-[16px] font-semibold"></p>
 
-            <label for="expiry">Expiry Date</label>
-            <input id="expiry" type="date">
-
-            <div class="dialog-actions">
-                <button type="button" class="secondary-button" id="cancelDialog">
+            <div class="flex items-center justify-end space-x-2.5 mt-5 pt-4 border-t border-slate-100">
+                <button type="button" id="cancelDialog" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition text-xs">
                     Cancel
                 </button>
-                <button type="submit" class="primary-button" id="saveButton">
+                <button type="submit" id="saveButton" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl transition text-xs shadow-sm">
                     Save Product
                 </button>
             </div>
-
-            <p id="formMessage" class="form-message"></p>
         </form>
     </dialog>
 
-    <!-- Firebase compatibility SDK -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
