@@ -390,23 +390,42 @@ ${catalogSummary}
 If a customer asks for an item not in this list, politely explain that it is currently not stocked or registered in the store.`;
 
     try {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${CONFIG.geminiKey}`;
-        const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                systemInstruction: {
-                    parts: [{ text: systemPrompt }]
-                },
-                contents: [{
-                    parts: [{ text: userQuestion }]
-                }]
-            })
-        });
+        let replyText = "";
+        
+        // Priority 1: Check if Vercel serverless /api/chat is available
+        try {
+            const apiRes = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    question: userQuestion,
+                    catalog: catalogSummary
+                })
+            });
+            if (apiRes.ok) {
+                const apiData = await apiRes.json();
+                replyText = apiData.reply;
+            }
+        } catch (_) {}
 
-        const data = await response.json();
-        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text 
-            || "I couldn't locate that product right now. Please check with store staff!";
+        // Priority 2: Direct client fetch fallback using local key
+        if (!replyText && CONFIG.geminiKey) {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${CONFIG.geminiKey}`;
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    contents: [{ parts: [{ text: userQuestion }] }]
+                })
+            });
+            const data = await response.json();
+            replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        }
+
+        if (!replyText) {
+            replyText = "I couldn't locate that product right now. Please check with store staff!";
+        }
 
         const el = document.getElementById(placeholderId);
         if (el) {
