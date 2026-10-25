@@ -16,6 +16,7 @@ let allProducts = {};
 let cart = {}; // { [uid]: { uid, name, price, quantity, maxStock } }
 let lastSeenScan = null; // Store stringified scan object to detect change
 let shoppingBudget = Number(localStorage.getItem("trolley_budget") || 500);
+let alertedMilestones = { 50: false, 90: false, 100: false };
 let speechEnabled = true;
 let isRecognizing = false;
 let speechRecognizer = null;
@@ -214,7 +215,7 @@ function clearCart() {
 }
 
 // -------------------------------------------------------------------------
-// 5. Render UI & Budget Tracker
+// 5. Render UI & Budget Tracker (50%, 90%, 100% Alerts)
 // -------------------------------------------------------------------------
 function updateBudgetTracker(subtotal) {
     const budgetSpentEl = $("budgetSpent");
@@ -229,39 +230,86 @@ function updateBudgetTracker(subtotal) {
         const percentage = Math.min(100, (subtotal / shoppingBudget) * 100);
         progressBar.style.width = `${percentage}%`;
 
+        // 1. Overbudget Threshold (>= 100%)
         if (subtotal >= shoppingBudget) {
             progressBar.className = "bg-rose-600 h-2.5 rounded-full transition-all duration-500 animate-pulse";
             if (alertMsg) {
                 alertMsg.className = "text-[11px] mt-2 font-bold text-rose-600 flex items-center space-x-1";
-                alertMsg.innerHTML = `<i class="fas fa-triangle-exclamation"></i><span>⚠️ Budget Exceeded by ₹${(subtotal - shoppingBudget).toFixed(2)}!</span>`;
+                alertMsg.innerHTML = `<i class="fas fa-triangle-exclamation"></i><span>🚨 Budget Exceeded by ₹${(subtotal - shoppingBudget).toFixed(2)}!</span>`;
             }
-        } else if (percentage >= 85) {
+            if (!alertedMilestones[100]) {
+                speakText(`Alert: You have exceeded your shopping budget by ₹${(subtotal - shoppingBudget).toFixed(0)}.`);
+                alertedMilestones[100] = true;
+            }
+        } 
+        // 2. High Budget Warning Threshold (>= 90%)
+        else if (percentage >= 90) {
             progressBar.className = "bg-amber-500 h-2.5 rounded-full transition-all duration-500";
             if (alertMsg) {
                 alertMsg.className = "text-[11px] mt-2 font-bold text-amber-600 flex items-center space-x-1";
-                alertMsg.innerHTML = `<i class="fas fa-circle-exclamation"></i><span>Warning: You've reached ${percentage.toFixed(0)}% of your budget!</span>`;
+                alertMsg.innerHTML = `<i class="fas fa-circle-exclamation"></i><span>⚠️ Warning: You've reached ${percentage.toFixed(0)}% of your ₹${shoppingBudget.toFixed(0)} budget! Only ₹${(shoppingBudget - subtotal).toFixed(2)} left.</span>`;
             }
-        } else {
+            if (!alertedMilestones[90]) {
+                speakText(`Warning: You have reached 90% of your ₹${shoppingBudget.toFixed(0)} budget.`);
+                alertedMilestones[90] = true;
+            }
+            alertedMilestones[100] = false;
+        } 
+        // 3. Mid-Point Budget Notice Threshold (>= 50%)
+        else if (percentage >= 50) {
+            progressBar.className = "bg-blue-600 h-2.5 rounded-full transition-all duration-500";
+            if (alertMsg) {
+                alertMsg.className = "text-[11px] mt-2 font-semibold text-blue-700 flex items-center space-x-1";
+                alertMsg.innerHTML = `<i class="fas fa-info-circle"></i><span>Notice: You've reached 50% of your budget (₹${subtotal.toFixed(2)} spent).</span>`;
+            }
+            if (!alertedMilestones[50]) {
+                speakText(`Notice: You have reached 50% of your shopping budget.`);
+                alertedMilestones[50] = true;
+            }
+            alertedMilestones[90] = false;
+            alertedMilestones[100] = false;
+        } 
+        // 4. Normal Threshold (< 50%)
+        else {
             progressBar.className = "bg-indigo-600 h-2.5 rounded-full transition-all duration-500";
             if (alertMsg) {
                 alertMsg.className = "text-[11px] mt-2 font-medium text-slate-500";
                 alertMsg.textContent = `Remaining budget: ₹${(shoppingBudget - subtotal).toFixed(2)}`;
             }
+            alertedMilestones[50] = false;
+            alertedMilestones[90] = false;
+            alertedMilestones[100] = false;
         }
     }
 }
 
-function promptSetBudget() {
-    const input = prompt("Set your shopping budget (₹):", shoppingBudget);
-    if (input !== null) {
-        const val = Number(input);
-        if (Number.isFinite(val) && val > 0) {
-            shoppingBudget = val;
-            localStorage.setItem("trolley_budget", shoppingBudget);
-            renderCart();
-        } else {
-            alert("Please enter a valid positive budget number.");
-        }
+function openBudgetModal() {
+    const modal = $("budgetModal");
+    const input = $("customBudgetInput");
+    if (input) input.value = shoppingBudget;
+    if (modal) modal.showModal();
+}
+
+function closeBudgetModal() {
+    const modal = $("budgetModal");
+    if (modal) modal.close();
+}
+
+function selectPresetBudget(amount) {
+    setShoppingBudget(amount);
+    closeBudgetModal();
+}
+
+function setShoppingBudget(amount) {
+    const val = Number(amount);
+    if (Number.isFinite(val) && val > 0) {
+        shoppingBudget = val;
+        localStorage.setItem("trolley_budget", shoppingBudget);
+        sessionStorage.setItem("budget_prompted", "true");
+        alertedMilestones = { 50: false, 90: false, 100: false };
+        renderCart();
+    } else {
+        alert("Please enter a valid positive budget amount.");
     }
 }
 
@@ -440,14 +488,40 @@ async function askGeminiAssistant(userQuestion) {
         return `- ${name}: Location [${rack}], Price [₹${price}], Available Stock [${stock} units]`;
     }).join("\n");
 
-    const systemPrompt = `You are the AI Assistant on a Smart Shopping Trolley in a supermarket.
-Your primary role is to tell customers the exact location (Aisle, Rack, Shelf) of products they ask about, along with their price and stock availability.
-Always be concise, polite, helpful, and direct (1-3 sentences max).
+    const systemPrompt = `You are the friendly AI Store Assistant mounted on a Smart IoT Shopping Trolley in Smart Mart Supermarket.
+
+Your roles:
+1. PRODUCT LOCATIONS & PRICING: Provide the exact location (Aisle, Rack, Shelf), price, and current stock for items the customer asks about based on the inventory catalog below.
+2. GENERAL STORE QUERIES: Answer any general store questions such as store timings, payment methods, return policies, trolley instructions, washrooms, amenities, and discounts.
+3. CONVERSATIONAL & CONCISE: Always be polite, warm, direct, and concise (1 to 3 sentences).
+
+Store Details & Information:
+- Store Name: Smart Mart Supermarket
+- Timings: Open daily from 8:00 AM to 10:00 PM (Monday through Sunday, including public holidays).
+- Payment Modes: UPI (Google Pay, PhonePe, Paytm, BHIM), Credit/Debit Cards, Net Banking, and Cash at the Helpdesk. Cashier-less self-checkout can be completed directly on this trolley!
+- Return & Refund Policy: 7 days hassle-free return or exchange with digital receipt; same-day return for dairy and fresh perishable items.
+- Smart Trolley Features:
+  * Drop any RFID-tagged item into the trolley basket; it automatically detects, displays name/price, and adds it to your bill.
+  * Real-time budget tracking alerts you at 50% and 90% of your budget.
+  * Click 'Pay & Self-Checkout' when done to pay without standing in cashier queues.
+- Facilities & Amenities:
+  * Restrooms / Washrooms: Located near the rear exit behind Aisle 4.
+  * Customer Helpdesk & Manager: Located at the main store entrance near Counter 1.
+  * Drinking Water & First Aid: Free at Counter 1.
+  * Parking: 2 hours free parking for customers in Basement B1.
+- Store Aisles:
+  * Aisle 1: Dairy, Fresh Milk, Bread, Bakery & Breakfast
+  * Aisle 2: Beverages, Cold Drinks, Snacks & Confectionery
+  * Aisle 3: Grains, Rice, Pulses, Cooking Oils & Spices
+  * Aisle 4: Personal Care, Soaps & Household Cleaners
 
 Current Supermarket Inventory Catalog:
 ${catalogSummary}
 
-If a customer asks for an item not in this list, politely explain that it is currently not stocked or registered in the store.`;
+Guidance:
+- If asked about an item in the catalog, state its rack/aisle location, price, and stock.
+- If asked about an item NOT in this catalog, politely inform the customer that it is currently out of stock or not available in the store.
+- If asked general questions (timings, washrooms, payments, discounts, trolley help), answer using the store details above.`;
 
     try {
         let replyText = "";
@@ -850,6 +924,8 @@ function setupEventListeners() {
     const payBtn = $("payCheckoutBtn");
     const closeBtn = $("closeReceiptBtn");
     const setBudgetBtn = $("setBudgetBtn");
+    const saveBudgetModalBtn = $("saveBudgetModalBtn");
+    const skipBudgetModalBtn = $("skipBudgetModalBtn");
 
     if (clearBtn) {
         clearBtn.addEventListener("click", () => {
@@ -860,7 +936,27 @@ function setupEventListeners() {
     }
     if (payBtn) payBtn.addEventListener("click", processCheckout);
     if (closeBtn) closeBtn.addEventListener("click", () => $("receiptModal")?.close());
-    if (setBudgetBtn) setBudgetBtn.addEventListener("click", promptSetBudget);
+    
+    // Budget Modal Listeners
+    if (setBudgetBtn) setBudgetBtn.addEventListener("click", openBudgetModal);
+    if (saveBudgetModalBtn) {
+        saveBudgetModalBtn.addEventListener("click", () => {
+            const input = $("customBudgetInput");
+            const val = Number(input?.value);
+            if (Number.isFinite(val) && val > 0) {
+                setShoppingBudget(val);
+                closeBudgetModal();
+            } else {
+                alert("Please enter a valid positive budget amount.");
+            }
+        });
+    }
+    if (skipBudgetModalBtn) {
+        skipBudgetModalBtn.addEventListener("click", () => {
+            sessionStorage.setItem("budget_prompted", "true");
+            closeBudgetModal();
+        });
+    }
 
     setupAiChat();
 }
@@ -869,6 +965,11 @@ function setupEventListeners() {
 async function init() {
     setupEventListeners();
     updateBudgetTracker(0);
+
+    // Prompt user to set their shopping budget in the beginning
+    if (!sessionStorage.getItem("budget_prompted")) {
+        setTimeout(openBudgetModal, 400);
+    }
 
     const success = await authenticate();
     if (success) {

@@ -191,11 +191,13 @@
                 </div>
             </div>
 
-            <!-- Suggested Quick Questions -->
+            <!-- Suggested Quick Questions (Products & Store Queries) -->
             <div class="px-3 py-1.5 bg-slate-100 border-t border-slate-200 flex gap-1.5 overflow-x-auto text-[11px] whitespace-nowrap">
                 <button onclick="askQuickPrompt('Where is Milk located?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🥛 Where is Milk?</button>
-                <button onclick="askQuickPrompt('Where can I find Potato Chips?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🥔 Where are Chips?</button>
-                <button onclick="askQuickPrompt('Where is Paneer?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🧀 Where is Paneer?</button>
+                <button onclick="askQuickPrompt('What are store opening hours?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🕒 Store Hours?</button>
+                <button onclick="askQuickPrompt('What payment methods are accepted?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">💳 Payments?</button>
+                <button onclick="askQuickPrompt('How do I use this Smart Trolley?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🛒 Trolley Guide</button>
+                <button onclick="askQuickPrompt('Where are the restrooms located?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🚻 Washrooms?</button>
             </div>
 
             <!-- Input Bar -->
@@ -225,6 +227,45 @@
             <span class="text-xs font-semibold">Find Rack &amp; Product</span>
         </button>
     </div>
+
+    <!-- Initial Shopping Budget Setup Modal -->
+    <dialog id="budgetModal" class="rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-md w-full">
+        <div class="bg-white p-6 rounded-2xl">
+            <div class="w-14 h-14 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-2xl mb-3">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <h3 class="text-center text-xl font-bold text-slate-900">Set Shopping Budget</h3>
+            <p class="text-center text-xs text-slate-500 mt-1 mb-5">
+                Track your spending in real time. We'll automatically alert you when you reach <span class="font-bold text-blue-600">50%</span> and <span class="font-bold text-amber-600">90%</span> of your target.
+            </p>
+
+            <!-- Quick Budget Presets -->
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Select a Budget:</label>
+            <div class="grid grid-cols-4 gap-2 mb-4">
+                <button type="button" onclick="selectPresetBudget(500)" class="preset-btn py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-400 text-slate-700 transition">₹500</button>
+                <button type="button" onclick="selectPresetBudget(1000)" class="preset-btn py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-400 text-slate-700 transition">₹1,000</button>
+                <button type="button" onclick="selectPresetBudget(1500)" class="preset-btn py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-400 text-slate-700 transition">₹1,500</button>
+                <button type="button" onclick="selectPresetBudget(2000)" class="preset-btn py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-400 text-slate-700 transition">₹2,000</button>
+            </div>
+
+            <!-- Custom Budget Input -->
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Or Custom Amount (₹):</label>
+            <div class="flex gap-2 mb-4">
+                <div class="relative flex-1">
+                    <span class="absolute left-3 top-2.5 text-slate-400 font-bold text-sm">₹</span>
+                    <input id="customBudgetInput" type="number" min="50" step="50" placeholder="500" value="500"
+                           class="w-full pl-8 pr-3 py-2 text-sm font-bold bg-slate-50 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                </div>
+                <button id="saveBudgetModalBtn" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition">
+                    Set Budget
+                </button>
+            </div>
+
+            <button id="skipBudgetModalBtn" type="button" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-2.5 rounded-xl transition text-xs">
+                Continue with default (₹500)
+            </button>
+        </div>
+    </dialog>
 
     <!-- Receipt / Success Modal -->
     <dialog id="receiptModal" class="rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-md w-full">
