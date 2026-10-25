@@ -7,7 +7,8 @@ const CONFIG = {
     apiKey: "AIzaSyBdId6Lqg-zc5o0dTzrArcgS0-6lC5VFD8",
     dbUrl: "https://inventory-fa492-default-rtdb.firebaseio.com",
     email: "shrikargs7@gmail.com",
-    pass: "Shri@1234"
+    pass: "Shri@1234",
+    geminiKey: window.GEMINI_API_KEY || ""
 };
 
 let idToken = null;
@@ -339,6 +340,130 @@ function escapeHTML(str) {
     }[c]));
 }
 
+// -------------------------------------------------------------------------
+// 7. Gemini AI In-Store Product & Rack Navigator
+// -------------------------------------------------------------------------
+async function askGeminiAssistant(userQuestion) {
+    const messagesContainer = $("aiChatMessages");
+    if (!messagesContainer || !userQuestion.trim()) return;
+
+    // Append User message
+    const userDiv = document.createElement("div");
+    userDiv.className = "flex items-start justify-end space-x-2";
+    userDiv.innerHTML = `
+        <div class="bg-blue-600 text-white p-2.5 rounded-2xl rounded-tr-none shadow-sm max-w-[80%] leading-relaxed">
+            ${escapeHTML(userQuestion)}
+        </div>
+    `;
+    messagesContainer.appendChild(userDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Append loading placeholder
+    const botDiv = document.createElement("div");
+    botDiv.className = "flex items-start space-x-2";
+    const placeholderId = "aiLoading_" + Date.now();
+    botDiv.innerHTML = `
+        <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs">🤖</div>
+        <div id="${placeholderId}" class="bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-500 shadow-sm leading-relaxed">
+            <i class="fas fa-spinner fa-spin mr-1"></i> Checking store shelves...
+        </div>
+    `;
+    messagesContainer.appendChild(botDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Prepare store catalog context
+    const catalogSummary = Object.entries(allProducts).map(([uid, p]) => {
+        const name = p.name || 'Unnamed';
+        const rack = p.rack || 'Aisle 1 - General Rack';
+        const price = p.price || 0;
+        const stock = p.stock_quantity ?? p.stock ?? 0;
+        return `- ${name}: Location [${rack}], Price [₹${price}], Available Stock [${stock} units]`;
+    }).join("\n");
+
+    const systemPrompt = `You are the AI Assistant on a Smart Shopping Trolley in a supermarket.
+Your primary role is to tell customers the exact location (Aisle, Rack, Shelf) of products they ask about, along with their price and stock availability.
+Always be concise, polite, helpful, and direct (1-3 sentences max).
+
+Current Supermarket Inventory Catalog:
+${catalogSummary}
+
+If a customer asks for an item not in this list, politely explain that it is currently not stocked or registered in the store.`;
+
+    try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${CONFIG.geminiKey}`;
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                contents: [{
+                    parts: [{ text: userQuestion }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text 
+            || "I couldn't locate that product right now. Please check with store staff!";
+
+        const el = document.getElementById(placeholderId);
+        if (el) {
+            el.className = "bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-800 shadow-sm leading-relaxed";
+            el.innerHTML = replyText.replace(/\n/g, '<br>');
+        }
+    } catch (err) {
+        console.error("Gemini API error:", err);
+        const el = document.getElementById(placeholderId);
+        if (el) {
+            el.innerHTML = "⚠️ Sorry, could not connect to Store AI Assistant.";
+        }
+    }
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function askQuickPrompt(question) {
+    const input = $("aiChatInput");
+    if (input) input.value = question;
+    askGeminiAssistant(question);
+    if (input) input.value = "";
+}
+
+function setupAiChat() {
+    const toggleBtn = $("toggleAiChatBtn");
+    const closeBtn = $("closeAiChatBtn");
+    const panel = $("aiChatPanel");
+    const form = $("aiChatForm");
+    const input = $("aiChatInput");
+
+    if (toggleBtn && panel) {
+        toggleBtn.addEventListener("click", () => {
+            panel.classList.toggle("hidden");
+            if (!panel.classList.contains("hidden")) {
+                input?.focus();
+            }
+        });
+    }
+
+    if (closeBtn && panel) {
+        closeBtn.addEventListener("click", () => {
+            panel.classList.add("hidden");
+        });
+    }
+
+    if (form) {
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const text = input?.value || "";
+            if (text.trim()) {
+                askGeminiAssistant(text.trim());
+                input.value = "";
+            }
+        });
+    }
+}
+
 // Event Listeners (Safe guard against DOM not ready)
 function setupEventListeners() {
     const clearBtn = $("clearCartBtn");
@@ -354,6 +479,8 @@ function setupEventListeners() {
     }
     if (payBtn) payBtn.addEventListener("click", processCheckout);
     if (closeBtn) closeBtn.addEventListener("click", () => $("receiptModal")?.close());
+
+    setupAiChat();
 }
 
 // Initial Boot Sequence (runs when DOM is loaded)
