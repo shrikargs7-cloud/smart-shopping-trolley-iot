@@ -569,18 +569,125 @@ function setupAiChat() {
 }
 
 // -------------------------------------------------------------------------
-// 8. Text-to-Speech & Speech-to-Text Voice Engine
+// 8. Text-to-Speech & Speech-to-Text Voice Engine (Warm & Friendly Assistant)
 // -------------------------------------------------------------------------
+let availableVoices = [];
+
+function loadVoices() {
+    if (!('speechSynthesis' in window)) return;
+    availableVoices = window.speechSynthesis.getVoices();
+}
+
+if ('speechSynthesis' in window) {
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+// Gentle pleasant chime using Web Audio API
+function playAssistantChime(isStartMic = false) {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        if (isStartMic) {
+            // Cheerful mic prompt tone (A4 -> C#5)
+            const notes = [440.0, 554.37];
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                gain.gain.setValueAtTime(0.05, now + idx * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.2);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now + idx * 0.08);
+                osc.stop(now + idx * 0.08 + 0.2);
+            });
+        } else {
+            // Warm two-note assistant notification chime (C5 -> G5)
+            const notes = [523.25, 783.99];
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+                gain.gain.setValueAtTime(0.06, now + idx * 0.12);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.12 + 0.35);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now + idx * 0.12);
+                osc.stop(now + idx * 0.12 + 0.35);
+            });
+        }
+    } catch (_) {}
+}
+
+function findBestFemaleVoice() {
+    if (!availableVoices || availableVoices.length === 0) {
+        loadVoices();
+    }
+    // High-priority natural and pleasant female assistant voices
+    const preferredVoices = [
+        "Google UK English Female",
+        "Google US English",
+        "Microsoft Jenny Online",
+        "Microsoft Aria Online",
+        "Samantha",
+        "Victoria",
+        "Karen",
+        "Veena",
+        "Zira",
+        "Fiona",
+        "Tessa"
+    ];
+
+    for (const name of preferredVoices) {
+        const found = availableVoices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+        if (found) return found;
+    }
+
+    // Try finding any voice with female/natural indicator
+    const femaleVoice = availableVoices.find(v => 
+        (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("natural")) && 
+        v.lang.startsWith("en")
+    );
+    if (femaleVoice) return femaleVoice;
+
+    // Fallback to English voice
+    const enVoice = availableVoices.find(v => v.lang === "en-IN" || v.lang === "en-US" || v.lang.startsWith("en"));
+    return enVoice || null;
+}
+
 function speakText(text) {
     if (!speechEnabled || !('speechSynthesis' in window)) return;
     try {
         window.speechSynthesis.cancel(); // Stop any ongoing speech
+
+        // Play gentle audio chime before speaking
+        playAssistantChime(false);
+
         // Clean markdown symbols for cleaner pronunciation
-        const cleanText = text.replace(/[*_#`~\[\]]/g, '');
+        const cleanText = text.replace(/[*_#`~\[\]]/g, '').trim();
+        if (!cleanText) return;
+
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.lang = 'en-IN';
+
+        // Warm, friendly & cheerful assistant tone parameters
+        utterance.pitch = 1.25;  // Warm, higher, polite tone
+        utterance.rate = 1.02;   // Natural, conversational pace
+        utterance.volume = 1.0;
+
+        const voice = findBestFemaleVoice();
+        if (voice) {
+            utterance.voice = voice;
+            utterance.lang = voice.lang;
+        } else {
+            utterance.lang = 'en-IN';
+        }
+
         window.speechSynthesis.speak(utterance);
     } catch (err) {
         console.warn("Speech synthesis error:", err);
@@ -601,6 +708,7 @@ function initVoiceRecognition() {
 
     recognition.onstart = () => {
         isRecognizing = true;
+        playAssistantChime(true);
         const voiceBtn = $("aiVoiceBtn");
         if (voiceBtn) {
             voiceBtn.className = "w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center text-xs transition animate-pulse";
