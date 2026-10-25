@@ -77,6 +77,44 @@
 
         <!-- Right Column: Bill Summary & Checkout -->
         <aside class="w-full lg:w-96 flex flex-col gap-6">
+
+            <!-- Budget Tracker Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                        <i class="fas fa-wallet text-indigo-600"></i>
+                        <span>Shopping Budget Tracker</span>
+                    </span>
+                    <button id="setBudgetBtn" class="text-[11px] text-blue-600 hover:underline font-semibold">Change</button>
+                </div>
+                <div class="flex items-baseline justify-between text-xs mb-2">
+                    <span class="text-slate-500">Current Spent:</span>
+                    <span class="font-extrabold text-slate-800"><span id="budgetSpent">₹0.00</span> / <span id="budgetLimitDisplay" class="text-indigo-600">₹500</span></span>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
+                    <div id="budgetProgressBar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div id="budgetAlertMsg" class="text-[11px] mt-2 font-medium text-slate-500 min-h-[16px]">
+                    Within your shopping budget
+                </div>
+            </div>
+
+            <!-- AI Recipe & Product Recommendation Card -->
+            <div id="recipeRecommenderCard" class="hidden bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl p-4 text-xs shadow-sm">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="font-bold text-amber-900 flex items-center space-x-1.5">
+                        <span>✨</span>
+                        <span id="recipeTitle">Smart Cart Insight</span>
+                    </span>
+                    <button onclick="dismissRecipeCard()" class="text-amber-500 hover:text-amber-700 font-bold text-sm">×</button>
+                </div>
+                <p id="recipeSuggestionText" class="text-amber-800 leading-relaxed mb-2">
+                    Analyzing your basket...
+                </p>
+                <div id="recipeActionChips" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
                 <h3 class="font-bold text-slate-800 text-lg border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
                     <span>Order Bill Summary</span>
@@ -161,9 +199,20 @@
             </div>
 
             <!-- Input Bar -->
-            <form id="aiChatForm" class="p-2.5 bg-white border-t border-slate-200 flex gap-2">
-                <input id="aiChatInput" type="text" placeholder="e.g. Which rack has Orange Juice?" 
+            <form id="aiChatForm" class="p-2.5 bg-white border-t border-slate-200 flex gap-2 items-center">
+                <input id="aiChatInput" type="text" placeholder="Ask: Which rack has Orange Juice?" 
                        class="flex-1 bg-slate-100 text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                
+                <!-- Voice Input Microphone Button -->
+                <button type="button" id="aiVoiceBtn" title="Speak to AI" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition">
+                    <i class="fas fa-microphone"></i>
+                </button>
+
+                <!-- Voice Output Toggle (Mute/Unmute speech) -->
+                <button type="button" id="aiSpeakerToggleBtn" title="Toggle voice response" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-blue-600 flex items-center justify-center text-xs transition">
+                    <i class="fas fa-volume-high"></i>
+                </button>
+
                 <button type="submit" id="aiSendBtn" class="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 text-xs font-bold transition flex items-center justify-center">
                     <i class="fas fa-paper-plane"></i>
                 </button>

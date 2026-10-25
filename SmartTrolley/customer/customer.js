@@ -15,6 +15,11 @@ let idToken = null;
 let allProducts = {};
 let cart = {}; // { [uid]: { uid, name, price, quantity, maxStock } }
 let lastSeenScan = null; // Store stringified scan object to detect change
+let shoppingBudget = Number(localStorage.getItem("trolley_budget") || 500);
+let speechEnabled = true;
+let isRecognizing = false;
+let speechRecognizer = null;
+let lastRecipeCheckCartHash = "";
 
 const $ = id => document.getElementById(id);
 
@@ -209,12 +214,67 @@ function clearCart() {
 }
 
 // -------------------------------------------------------------------------
-// 5. Render UI
+// 5. Render UI & Budget Tracker
 // -------------------------------------------------------------------------
+function updateBudgetTracker(subtotal) {
+    const budgetSpentEl = $("budgetSpent");
+    const budgetLimitDisplay = $("budgetLimitDisplay");
+    const progressBar = $("budgetProgressBar");
+    const alertMsg = $("budgetAlertMsg");
+
+    if (budgetSpentEl) budgetSpentEl.textContent = `₹${subtotal.toFixed(2)}`;
+    if (budgetLimitDisplay) budgetLimitDisplay.textContent = `₹${shoppingBudget.toFixed(0)}`;
+
+    if (progressBar) {
+        const percentage = Math.min(100, (subtotal / shoppingBudget) * 100);
+        progressBar.style.width = `${percentage}%`;
+
+        if (subtotal >= shoppingBudget) {
+            progressBar.className = "bg-rose-600 h-2.5 rounded-full transition-all duration-500 animate-pulse";
+            if (alertMsg) {
+                alertMsg.className = "text-[11px] mt-2 font-bold text-rose-600 flex items-center space-x-1";
+                alertMsg.innerHTML = `<i class="fas fa-triangle-exclamation"></i><span>⚠️ Budget Exceeded by ₹${(subtotal - shoppingBudget).toFixed(2)}!</span>`;
+            }
+        } else if (percentage >= 85) {
+            progressBar.className = "bg-amber-500 h-2.5 rounded-full transition-all duration-500";
+            if (alertMsg) {
+                alertMsg.className = "text-[11px] mt-2 font-bold text-amber-600 flex items-center space-x-1";
+                alertMsg.innerHTML = `<i class="fas fa-circle-exclamation"></i><span>Warning: You've reached ${percentage.toFixed(0)}% of your budget!</span>`;
+            }
+        } else {
+            progressBar.className = "bg-indigo-600 h-2.5 rounded-full transition-all duration-500";
+            if (alertMsg) {
+                alertMsg.className = "text-[11px] mt-2 font-medium text-slate-500";
+                alertMsg.textContent = `Remaining budget: ₹${(shoppingBudget - subtotal).toFixed(2)}`;
+            }
+        }
+    }
+}
+
+function promptSetBudget() {
+    const input = prompt("Set your shopping budget (₹):", shoppingBudget);
+    if (input !== null) {
+        const val = Number(input);
+        if (Number.isFinite(val) && val > 0) {
+            shoppingBudget = val;
+            localStorage.setItem("trolley_budget", shoppingBudget);
+            renderCart();
+        } else {
+            alert("Please enter a valid positive budget number.");
+        }
+    }
+}
+
 function renderCart() {
     const items = Object.values(cart);
     const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    // Update budget tracker
+    updateBudgetTracker(subtotal);
+
+    // Trigger AI Smart Recipe check
+    checkRecipeRecommendation();
 
     // Update summary counts
     if ($("badgeCount")) $("badgeCount").textContent = `${totalCount} item${totalCount === 1 ? '' : 's'}`;
@@ -432,6 +492,9 @@ If a customer asks for an item not in this list, politely explain that it is cur
             el.className = "bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-800 shadow-sm leading-relaxed";
             el.innerHTML = replyText.replace(/\n/g, '<br>');
         }
+
+        // Voice output (Text-to-Speech)
+        speakText(replyText);
     } catch (err) {
         console.error("Gemini API error:", err);
         const el = document.getElementById(placeholderId);
@@ -455,6 +518,8 @@ function setupAiChat() {
     const panel = $("aiChatPanel");
     const form = $("aiChatForm");
     const input = $("aiChatInput");
+    const voiceBtn = $("aiVoiceBtn");
+    const speakerBtn = $("aiSpeakerToggleBtn");
 
     if (toggleBtn && panel) {
         toggleBtn.addEventListener("click", () => {
@@ -481,13 +546,202 @@ function setupAiChat() {
             }
         });
     }
+
+    if (voiceBtn) {
+        voiceBtn.addEventListener("click", toggleVoiceRecognition);
+    }
+
+    if (speakerBtn) {
+        speakerBtn.addEventListener("click", () => {
+            speechEnabled = !speechEnabled;
+            if (speechEnabled) {
+                speakerBtn.className = "w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-blue-600 flex items-center justify-center text-xs transition";
+                speakerBtn.innerHTML = '<i class="fas fa-volume-high"></i>';
+                speakerBtn.title = "Text-to-speech enabled";
+            } else {
+                speakerBtn.className = "w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-400 flex items-center justify-center text-xs transition";
+                speakerBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
+                speakerBtn.title = "Text-to-speech muted";
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        });
+    }
 }
 
-// Event Listeners (Safe guard against DOM not ready)
+// -------------------------------------------------------------------------
+// 8. Text-to-Speech & Speech-to-Text Voice Engine
+// -------------------------------------------------------------------------
+function speakText(text) {
+    if (!speechEnabled || !('speechSynthesis' in window)) return;
+    try {
+        window.speechSynthesis.cancel(); // Stop any ongoing speech
+        // Clean markdown symbols for cleaner pronunciation
+        const cleanText = text.replace(/[*_#`~\[\]]/g, '');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.lang = 'en-IN';
+        window.speechSynthesis.speak(utterance);
+    } catch (err) {
+        console.warn("Speech synthesis error:", err);
+    }
+}
+
+function initVoiceRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.log("Web Speech API not supported in this browser.");
+        return null;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-IN';
+
+    recognition.onstart = () => {
+        isRecognizing = true;
+        const voiceBtn = $("aiVoiceBtn");
+        if (voiceBtn) {
+            voiceBtn.className = "w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center text-xs transition animate-pulse";
+            voiceBtn.innerHTML = `<i class="fas fa-stop"></i>`;
+        }
+        const input = $("aiChatInput");
+        if (input) input.placeholder = "Listening... Speak now!";
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        console.log("Voice transcript:", transcript);
+        const input = $("aiChatInput");
+        if (input) input.value = transcript;
+        askGeminiAssistant(transcript);
+        if (input) input.value = "";
+    };
+
+    recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        stopVoiceRecognition();
+    };
+
+    recognition.onend = () => {
+        stopVoiceRecognition();
+    };
+
+    return recognition;
+}
+
+function stopVoiceRecognition() {
+    isRecognizing = false;
+    const voiceBtn = $("aiVoiceBtn");
+    if (voiceBtn) {
+        voiceBtn.className = "w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition";
+        voiceBtn.innerHTML = `<i class="fas fa-microphone"></i>`;
+    }
+    const input = $("aiChatInput");
+    if (input) input.placeholder = "Ask: Which rack has Orange Juice?";
+}
+
+function toggleVoiceRecognition() {
+    if (!speechRecognizer) {
+        speechRecognizer = initVoiceRecognition();
+    }
+    if (!speechRecognizer) {
+        alert("Voice recognition is not supported in this browser (Chrome/Edge/Safari desktop supported).");
+        return;
+    }
+
+    if (isRecognizing) {
+        speechRecognizer.stop();
+    } else {
+        speechRecognizer.start();
+    }
+}
+
+// -------------------------------------------------------------------------
+// 9. AI Recipe & Smart Product Recommender
+// -------------------------------------------------------------------------
+let recipeDebounceTimer = null;
+
+function checkRecipeRecommendation() {
+    const items = Object.values(cart);
+    const cartHash = items.map(i => `${i.uid}:${i.quantity}`).sort().join(",");
+
+    // Only query AI when cart items actually changed
+    if (cartHash === lastRecipeCheckCartHash) return;
+    lastRecipeCheckCartHash = cartHash;
+
+    const card = $("recipeRecommenderCard");
+    if (items.length === 0) {
+        if (card) card.classList.add("hidden");
+        return;
+    }
+
+    clearTimeout(recipeDebounceTimer);
+    recipeDebounceTimer = setTimeout(async () => {
+        const itemNames = items.map(i => i.name).join(", ");
+        const availableItems = Object.values(allProducts)
+            .filter(p => !cart[p.uid]) // items not already in cart
+            .map(p => `${p.name} (Location: ${p.rack || 'Aisle 1'}, Price: ₹${p.price || 0})`)
+            .join("; ");
+
+        const prompt = `A customer in a grocery store has these items in their trolley: [${itemNames}].
+Available items in the store they haven't picked yet: [${availableItems}].
+
+Suggest 1 complementary recipe idea or matching item they might need (e.g. if they have Milk and Paneer, suggest Rice or Spices).
+Format your response as strict JSON with two keys:
+{
+  "title": "e.g., Making Paneer Curry? or Quick Breakfast Idea",
+  "text": "1 friendly sentence explaining what complementary item to pick and which rack it is on.",
+  "quickItem": "Name of the single recommended product to ask about"
+}`;
+
+        try {
+            const apiRes = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question: prompt })
+            });
+
+            if (apiRes.ok) {
+                const data = await apiRes.json();
+                let clean = data.reply.replace(/```json/g, '').replace(/```/g, '').trim();
+                const json = JSON.parse(clean);
+
+                const cardEl = $("recipeRecommenderCard");
+                const titleEl = $("recipeTitle");
+                const textEl = $("recipeSuggestionText");
+                const chipsEl = $("recipeActionChips");
+
+                if (cardEl && json.title && json.text) {
+                    titleEl.textContent = json.title;
+                    textEl.textContent = json.text;
+                    if (json.quickItem && chipsEl) {
+                        chipsEl.innerHTML = `
+                            <button onclick="askQuickPrompt('Where is ${escapeHTML(json.quickItem)}?')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-full font-semibold transition">
+                                📍 Where is ${escapeHTML(json.quickItem)}?
+                            </button>
+                        `;
+                    }
+                    cardEl.classList.remove("hidden");
+                }
+            }
+        } catch (err) {
+            console.log("Recipe suggestion skipped:", err);
+        }
+    }, 1500);
+}
+
+function dismissRecipeCard() {
+    const card = $("recipeRecommenderCard");
+    if (card) card.classList.add("hidden");
+}
+
 function setupEventListeners() {
     const clearBtn = $("clearCartBtn");
     const payBtn = $("payCheckoutBtn");
     const closeBtn = $("closeReceiptBtn");
+    const setBudgetBtn = $("setBudgetBtn");
 
     if (clearBtn) {
         clearBtn.addEventListener("click", () => {
@@ -498,6 +752,7 @@ function setupEventListeners() {
     }
     if (payBtn) payBtn.addEventListener("click", processCheckout);
     if (closeBtn) closeBtn.addEventListener("click", () => $("receiptModal")?.close());
+    if (setBudgetBtn) setBudgetBtn.addEventListener("click", promptSetBudget);
 
     setupAiChat();
 }
@@ -505,6 +760,7 @@ function setupEventListeners() {
 // Initial Boot Sequence (runs when DOM is loaded)
 async function init() {
     setupEventListeners();
+    updateBudgetTracker(0);
 
     const success = await authenticate();
     if (success) {
