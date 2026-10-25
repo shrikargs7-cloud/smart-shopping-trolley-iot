@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Trolley - Customer Self Checkout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .slide-in { animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col min-h-screen">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shadow-inner">
+                    🛒
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Smart Cart <span class="text-blue-200 text-sm font-normal">#TRL-01</span></h1>
+                    <p class="text-xs text-blue-200">Cashier-less Self Checkout</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2 bg-black/25 px-3 py-1.5 rounded-full text-xs border border-white/10">
+                    <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="statusText">Connecting...</span>
+                </div>
+                <a href="http://localhost:8080" target="_blank" class="text-xs bg-white/10 hover:bg-white/20 transition px-3 py-1.5 rounded-lg border border-white/20 flex items-center space-x-1.5">
+                    <i class="fas fa-boxes"></i>
+                    <span>Admin View</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-6xl mx-auto w-full p-4 md:p-6 flex-1 flex flex-col lg:flex-row gap-6">
+
+        <!-- Left Column: Scanned Cart Items -->
+        <section class="flex-1 flex flex-col gap-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                    <div class="flex items-center space-x-2">
+                        <h2 class="font-bold text-slate-800 text-base">Your Scanned Items</h2>
+                        <span id="badgeCount" class="bg-blue-100 text-blue-700 font-bold text-xs px-2.5 py-0.5 rounded-full">0 items</span>
+                    </div>
+                    <button id="clearCartBtn" class="text-xs text-rose-600 hover:text-rose-700 font-semibold hover:underline flex items-center space-x-1">
+                        <i class="far fa-trash-can"></i>
+                        <span>Clear Cart</span>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-4 md:p-6 min-h-[350px]">
+                    <!-- Empty Cart Placeholder -->
+                    <div id="emptyCartView" class="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
+                        <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center text-3xl mb-3 text-slate-300">
+                            🛒
+                        </div>
+                        <p class="font-bold text-slate-700 text-base">Your cart is empty</p>
+                        <p class="text-xs text-slate-400 mt-1 max-w-sm">Tap an RFID card or product tag against the ESP32 reader to add it to your bill automatically.</p>
+                    </div>
+
+                    <!-- Cart Item Cards -->
+                    <div id="cartItemsList" class="space-y-3 hidden">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Bill Summary & Checkout -->
+        <aside class="w-full lg:w-96 flex flex-col gap-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+                <h3 class="font-bold text-slate-800 text-lg border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+                    <span>Order Bill Summary</span>
+                    <i class="fas fa-receipt text-slate-400 text-base"></i>
+                </h3>
+
+                <div class="space-y-3 text-sm text-slate-600 flex-1">
+                    <div class="flex justify-between">
+                        <span>Total Items</span>
+                        <span id="summaryTotalItems" class="font-semibold text-slate-800">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Subtotal</span>
+                        <span id="summarySubtotal" class="font-semibold text-slate-800">₹0.00</span>
+                    </div>
+                    <div class="flex justify-between text-slate-500 text-xs">
+                        <span>GST / Taxes (5%)</span>
+                        <span id="summaryTaxes">₹0.00</span>
+                    </div>
+                    <div class="border-t border-dashed border-slate-200 pt-3 mt-3 flex justify-between items-baseline">
+                        <span class="text-base font-bold text-slate-900">Total Payable</span>
+                        <span id="summaryPayable" class="text-2xl font-black text-blue-700">₹0.00</span>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-5 border-t border-slate-100">
+                    <button id="payCheckoutBtn" disabled 
+                            class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-base">
+                        <i class="fas fa-lock text-sm"></i>
+                        <span>Pay & Self-Checkout</span>
+                    </button>
+                    <p class="text-[11px] text-center text-slate-400 mt-2">
+                        Inventory stock automatically deducts upon checkout
+                    </p>
+                </div>
+            </div>
+
+            <!-- Live Status Notice -->
+            <div class="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 text-xs text-blue-900">
+                <div class="font-bold flex items-center space-x-1.5 mb-1 text-blue-800">
+                    <i class="fas fa-wifi text-emerald-600"></i>
+                    <span>Hardware Integration Active</span>
+                </div>
+                <p class="text-blue-700/90 leading-relaxed">
+                    Connected to Firebase Realtime Database. Any scan from the ESP32 RFID module is detected within seconds.
+                </p>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Receipt / Success Modal -->
+    <dialog id="receiptModal" class="rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-md w-full">
+        <div class="bg-white p-6 rounded-2xl">
+            <div class="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl mb-3">
+                <i class="fas fa-check"></i>
+            </div>
+            <h3 class="text-center text-xl font-bold text-slate-900">Payment Successful!</h3>
+            <p class="text-center text-xs text-slate-500 mt-1">Cashier-less self-billing completed</p>
+
+            <div class="my-5 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+                <div class="flex justify-between text-slate-500">
+                    <span>Receipt No:</span>
+                    <span id="receiptNumber" class="font-mono font-bold text-slate-800">#REC-000000</span>
+                </div>
+                <div class="flex justify-between text-slate-500">
+                    <span>Date & Time:</span>
+                    <span id="receiptDate" class="text-slate-800">--</span>
+                </div>
+                <div class="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-900 text-sm">
+                    <span>Total Paid:</span>
+                    <span id="receiptAmount" class="text-emerald-600">₹0.00</span>
+                </div>
+            </div>
+
+            <p class="text-center text-xs text-slate-500 mb-5">
+                ✅ Stock units have been deducted from central store inventory.<br>
+                Thank you for shopping!
+            </p>
+
+            <button id="closeReceiptBtn" class="w-full bg-slate-900 hover:bg-black text-white font-semibold py-3 rounded-xl transition text-sm">
+                Done & Start New Cart
+            </button>
+        </div>
+    </dialog>
+
+    <script src="customer.js?v=2"></script>
+</body>
+</html>

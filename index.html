@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Shopping Trolley</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col h-screen overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-md px-6 py-4 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-shopping-cart text-2xl"></i>
+            <h1 class="text-xl font-bold tracking-wide">Smart Trolley</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div id="connection-status" class="flex items-center space-x-2 bg-blue-700 px-3 py-1 rounded-full text-sm">
+                <div class="w-2 h-2 rounded-full bg-red-400" id="status-dot"></div>
+                <span id="status-text">Connecting...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden max-w-6xl mx-auto w-full p-4 gap-6">
+        
+        <!-- Cart Items Section -->
+        <div class="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                <h2 class="text-lg font-bold text-gray-800"><i class="fas fa-list mr-2 text-blue-500"></i>Your Items</h2>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4" id="cart-container">
+                <!-- Items populated here -->
+                <div class="flex flex-col items-center justify-center h-full text-gray-400 space-y-4" id="empty-state">
+                    <i class="fas fa-cart-arrow-down text-6xl"></i>
+                    <p class="text-lg">Your cart is empty. Scan an item!</p>
+                </div>
+                <ul id="cart-list" class="space-y-3 hidden">
+                </ul>
+            </div>
+        </div>
+
+        <!-- Checkout / Summary Section -->
+        <div class="w-full md:w-96 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col p-6 space-y-6">
+            <h2 class="text-xl font-bold text-gray-800 border-b pb-4">Order Summary</h2>
+            
+            <div class="flex-1 space-y-4">
+                <div class="flex justify-between text-gray-600">
+                    <span>Total Items</span>
+                    <span id="total-items" class="font-bold text-gray-800">0</span>
+                </div>
+                <div class="flex justify-between text-xl font-bold text-gray-900 border-t pt-4">
+                    <span>Total Amount</span>
+                    <span id="total-amount">₹0.00</span>
+                </div>
+            </div>
+
+            <button onclick="checkout()" id="checkout-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i class="fas fa-credit-card mr-2"></i> Pay & Checkout
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // ESP32 AP IP Address
+        const ESP32_URL = 'http://192.168.4.1'; 
+        
+        async function fetchCart() {
+            try {
+                const response = await fetch(`${ESP32_URL}/api/cart`);
+                const data = await response.json();
+                
+                // Update Connection Status
+                document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-green-400';
+                document.getElementById('status-text').innerText = 'Connected to Trolley';
+                
+                renderCart(data.items, data.total);
+            } catch (err) {
+                console.error("Connection error:", err);
+                // Update Connection Status
+                document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-red-400 animate-pulse';
+                document.getElementById('status-text').innerText = 'Disconnected';
+            }
+        }
+
+        function renderCart(items, total) {
+            const emptyState = document.getElementById('empty-state');
+            const cartList = document.getElementById('cart-list');
+            const totalItemsEl = document.getElementById('total-items');
+            const totalAmountEl = document.getElementById('total-amount');
+            const checkoutBtn = document.getElementById('checkout-btn');
+
+            let totalQuantity = 0;
+            
+            if (items.length === 0) {
+                emptyState.classList.remove('hidden');
+                cartList.classList.add('hidden');
+                checkoutBtn.disabled = true;
+            } else {
+                emptyState.classList.add('hidden');
+                cartList.classList.remove('hidden');
+                checkoutBtn.disabled = false;
+                
+                cartList.innerHTML = ''; // clear
+                items.forEach(item => {
+                    totalQuantity += item.quantity;
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-100 fade-in';
+                    li.innerHTML = `
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-blue-100 text-blue-600 p-3 rounded-lg">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-800">${item.name}</h3>
+                                <p class="text-sm text-gray-500">UID: ${item.uid}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-gray-900">₹${item.price.toFixed(2)}</p>
+                            <p class="text-sm text-gray-500">Qty: ${item.quantity}</p>
+                        </div>
+                    `;
+                    cartList.appendChild(li);
+                });
+            }
+
+            totalItemsEl.innerText = totalQuantity;
+            totalAmountEl.innerText = `₹${total.toFixed(2)}`;
+        }
+
+        async function checkout() {
+            try {
+                const response = await fetch(`${ESP32_URL}/api/checkout`, { method: 'POST' });
+                if (response.ok) {
+                    alert("Payment Successful! Thank you for shopping.");
+                    fetchCart(); // refresh
+                }
+            } catch (err) {
+                alert("Checkout failed. Make sure you are connected to the Trolley's Wi-Fi.");
+            }
+        }
+
+        // Poll ESP32 every 1 second
+        setInterval(fetchCart, 1000);
+        fetchCart();
+    </script>
+</body>
+</html>
