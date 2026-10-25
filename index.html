@@ -127,6 +127,56 @@
         </aside>
     </main>
 
+    <!-- Floating Gemini AI In-Store Assistant -->
+    <div id="aiChatWidget" class="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+        <!-- Chat Panel (hidden by default) -->
+        <div id="aiChatPanel" class="hidden mb-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[480px]">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <span class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-base">🤖</span>
+                    <div>
+                        <h4 class="font-bold text-sm">Store Navigator AI</h4>
+                        <p class="text-[10px] text-blue-200">Powered by Gemini 3.5 Flash</p>
+                    </div>
+                </div>
+                <button id="closeAiChatBtn" class="text-white/80 hover:text-white text-lg font-bold">×</button>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="aiChatMessages" class="flex-1 p-3 overflow-y-auto space-y-3 bg-slate-50 text-xs">
+                <div class="flex items-start space-x-2">
+                    <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs">🤖</div>
+                    <div class="bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-700 shadow-sm leading-relaxed">
+                        Hello! 👋 I am your Smart Trolley Navigator. Ask me where any product is located, its price, or available stock!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suggested Quick Questions -->
+            <div class="px-3 py-1.5 bg-slate-100 border-t border-slate-200 flex gap-1.5 overflow-x-auto text-[11px] whitespace-nowrap">
+                <button onclick="askQuickPrompt('Where is Milk located?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🥛 Where is Milk?</button>
+                <button onclick="askQuickPrompt('Where can I find Potato Chips?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🥔 Where are Chips?</button>
+                <button onclick="askQuickPrompt('Where is Paneer?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🧀 Where is Paneer?</button>
+            </div>
+
+            <!-- Input Bar -->
+            <form id="aiChatForm" class="p-2.5 bg-white border-t border-slate-200 flex gap-2">
+                <input id="aiChatInput" type="text" placeholder="e.g. Which rack has Orange Juice?" 
+                       class="flex-1 bg-slate-100 text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                <button type="submit" id="aiSendBtn" class="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 text-xs font-bold transition flex items-center justify-center">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Toggle Button -->
+        <button id="toggleAiChatBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-full shadow-lg flex items-center space-x-2 transition hover:scale-105">
+            <span class="text-lg">🤖</span>
+            <span class="text-xs font-semibold">Find Rack &amp; Product</span>
+        </button>
+    </div>
+
     <!-- Receipt / Success Modal -->
     <dialog id="receiptModal" class="rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-md w-full">
         <div class="bg-white p-6 rounded-2xl">
