@@ -449,7 +449,7 @@ function escapeHTML(str) {
 }
 
 // -------------------------------------------------------------------------
-// 7. Gemini AI In-Store Product & Rack Navigator
+// 7. Gemini AI Agent: Sentiment-Rich, Calm, Clear & Autonomous Actions
 // -------------------------------------------------------------------------
 async function askGeminiAssistant(userQuestion) {
     const messagesContainer = $("aiChatMessages");
@@ -472,78 +472,52 @@ async function askGeminiAssistant(userQuestion) {
     const placeholderId = "aiLoading_" + Date.now();
     botDiv.innerHTML = `
         <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs">🤖</div>
-        <div id="${placeholderId}" class="bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-500 shadow-sm leading-relaxed">
-            <i class="fas fa-spinner fa-spin mr-1"></i> Checking store shelves...
+        <div id="${placeholderId}" class="bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-500 shadow-sm leading-relaxed text-xs">
+            <i class="fas fa-spinner fa-spin mr-1"></i> Aura is thinking...
         </div>
     `;
     messagesContainer.appendChild(botDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // Prepare store catalog context
+    // Prepare store catalog & cart context
     const catalogSummary = Object.entries(allProducts).map(([uid, p]) => {
         const name = p.name || 'Unnamed';
         const rack = p.rack || 'Aisle 1 - General Rack';
         const price = p.price || 0;
         const stock = p.stock_quantity ?? p.stock ?? 0;
-        return `- ${name}: Location [${rack}], Price [₹${price}], Available Stock [${stock} units]`;
+        return `- ${name} (UID: ${uid}): Location [${rack}], Price [₹${price}], Available Stock [${stock} units]`;
     }).join("\n");
 
-    const systemPrompt = `You are the friendly AI Store Assistant mounted on a Smart IoT Shopping Trolley in Smart Mart Supermarket.
-
-Your roles:
-1. PRODUCT LOCATIONS & PRICING: Provide the exact location (Aisle, Rack, Shelf), price, and current stock for items the customer asks about based on the inventory catalog below.
-2. GENERAL STORE QUERIES: Answer any general store questions such as store timings, payment methods, return policies, trolley instructions, washrooms, amenities, and discounts.
-3. CONVERSATIONAL & CONCISE: Always be polite, warm, direct, and concise (1 to 3 sentences).
-
-Store Details & Information:
-- Store Name: Smart Mart Supermarket
-- Timings: Open daily from 8:00 AM to 10:00 PM (Monday through Sunday, including public holidays).
-- Payment Modes: UPI (Google Pay, PhonePe, Paytm, BHIM), Credit/Debit Cards, Net Banking, and Cash at the Helpdesk. Cashier-less self-checkout can be completed directly on this trolley!
-- Return & Refund Policy: 7 days hassle-free return or exchange with digital receipt; same-day return for dairy and fresh perishable items.
-- Smart Trolley Features:
-  * Drop any RFID-tagged item into the trolley basket; it automatically detects, displays name/price, and adds it to your bill.
-  * Real-time budget tracking alerts you at 50% and 90% of your budget.
-  * Click 'Pay & Self-Checkout' when done to pay without standing in cashier queues.
-- Facilities & Amenities:
-  * Restrooms / Washrooms: Located near the rear exit behind Aisle 4.
-  * Customer Helpdesk & Manager: Located at the main store entrance near Counter 1.
-  * Drinking Water & First Aid: Free at Counter 1.
-  * Parking: 2 hours free parking for customers in Basement B1.
-- Store Aisles:
-  * Aisle 1: Dairy, Fresh Milk, Bread, Bakery & Breakfast
-  * Aisle 2: Beverages, Cold Drinks, Snacks & Confectionery
-  * Aisle 3: Grains, Rice, Pulses, Cooking Oils & Spices
-  * Aisle 4: Personal Care, Soaps & Household Cleaners
-
-Current Supermarket Inventory Catalog:
-${catalogSummary}
-
-Guidance:
-- If asked about an item in the catalog, state its rack/aisle location, price, and stock.
-- If asked about an item NOT in this catalog, politely inform the customer that it is currently out of stock or not available in the store.
-- If asked general questions (timings, washrooms, payments, discounts, trolley help), answer using the store details above.`;
+    const cartSummary = Object.values(cart).map(i => `${i.name} (Qty: ${i.quantity}, Price: ₹${i.price})`).join(", ") || "Empty";
 
     try {
-        let replyText = "";
+        let rawReply = "";
         
-        // Priority 1: Check if Vercel serverless /api/chat is available
+        // Priority 1: Vercel serverless /api/chat
         try {
             const apiRes = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     question: userQuestion,
-                    catalog: catalogSummary
+                    catalog: catalogSummary,
+                    cart: cartSummary
                 })
             });
             if (apiRes.ok) {
                 const apiData = await apiRes.json();
-                replyText = apiData.reply;
+                rawReply = apiData.reply;
             }
         } catch (_) {}
 
-        // Priority 2: Direct client fetch fallback using local key
-        if (!replyText && CONFIG.geminiKey) {
+        // Priority 2: Direct client fetch fallback
+        if (!rawReply && CONFIG.geminiKey) {
+            const systemPrompt = `You are Aura, an empathetic, calm, clear, and proactive AI Supermarket Shopping Agent.
+Catalog:
+${catalogSummary}
+Customer Cart:
+${cartSummary}
+If the user commands an action (add item, remove item, clear cart, set budget, navigate, pay), append [ACTION: {"action": "...", ...}] at the end.`;
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${CONFIG.geminiKey}`;
             const response = await fetch(endpoint, {
                 method: "POST",
@@ -554,29 +528,147 @@ Guidance:
                 })
             });
             const data = await response.json();
-            replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            rawReply = data.candidates?.[0]?.content?.parts?.[0]?.text;
         }
 
-        if (!replyText) {
-            replyText = "I couldn't locate that product right now. Please check with store staff!";
+        if (!rawReply) {
+            rawReply = "I understand. Let me help you find whatever you need in the store right away!";
         }
+
+        // Parse and execute agentic actions from response
+        const { speechText, actionData } = parseAgentResponse(rawReply);
 
         const el = document.getElementById(placeholderId);
         if (el) {
-            el.className = "bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-800 shadow-sm leading-relaxed";
-            el.innerHTML = replyText.replace(/\n/g, '<br>');
+            el.className = "bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-800 shadow-sm leading-relaxed text-xs";
+            el.innerHTML = speechText.replace(/\n/g, '<br>');
         }
 
-        // Voice output (Text-to-Speech)
-        speakText(replyText);
+        // Execute Agent Autonomous Actions
+        if (actionData) {
+            executeAgentAction(actionData);
+        }
+
+        // Voice output with calm, clear, sentiment-rich synthesis
+        speakText(speechText);
     } catch (err) {
         console.error("Gemini API error:", err);
         const el = document.getElementById(placeholderId);
         if (el) {
-            el.innerHTML = "⚠️ Sorry, could not connect to Store AI Assistant.";
+            el.innerHTML = "⚠️ I apologize, I had a brief connection issue. Please tell me again how I can help.";
         }
     }
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Extract [ACTION: {...}] tag and return clean customer text
+function parseAgentResponse(fullText) {
+    let speechText = fullText;
+    let actionData = null;
+
+    const actionMatch = fullText.match(/\[ACTION:\s*({[\s\S]*?})\]/i);
+    if (actionMatch) {
+        try {
+            actionData = JSON.parse(actionMatch[1]);
+            speechText = fullText.replace(actionMatch[0], "").trim();
+        } catch (e) {
+            console.warn("Action JSON parse error:", e);
+        }
+    }
+
+    return { speechText, actionData };
+}
+
+// Autonomous Agent Action Executor
+function executeAgentAction(actionObj) {
+    if (!actionObj || !actionObj.action) return;
+    const act = actionObj.action.toUpperCase();
+    console.log("🤖 [Aura Agent Action Executing]:", act, actionObj);
+
+    switch (act) {
+        case "ADD_ITEM": {
+            const queryName = (actionObj.item || "").toLowerCase();
+            const qty = Math.max(1, Number(actionObj.quantity || 1));
+            // Find in catalog
+            const foundEntry = Object.entries(allProducts).find(([uid, p]) => 
+                (p.name || "").toLowerCase().includes(queryName) || uid.toLowerCase() === queryName
+            );
+
+            if (foundEntry) {
+                const [uid, product] = foundEntry;
+                for (let i = 0; i < qty; i++) {
+                    addItemToCart(uid, product.name, product.price);
+                }
+                highlightElement("cartItemsList");
+            } else {
+                // If item not registered, add placeholder
+                addItemToCart("ITEM-" + Date.now().toString().slice(-4), actionObj.item || "Requested Item", 40);
+            }
+            break;
+        }
+
+        case "REMOVE_ITEM": {
+            const queryName = (actionObj.item || "").toLowerCase();
+            const itemKey = Object.keys(cart).find(uid => 
+                (cart[uid].name || "").toLowerCase().includes(queryName) || uid.toLowerCase() === queryName
+            );
+            if (itemKey) {
+                removeItem(itemKey);
+                highlightElement("cartItemsList");
+            }
+            break;
+        }
+
+        case "CLEAR_CART": {
+            clearCart();
+            break;
+        }
+
+        case "SET_BUDGET": {
+            const amount = Number(actionObj.amount);
+            if (Number.isFinite(amount) && amount > 0) {
+                setShoppingBudget(amount);
+                highlightElement("budgetProgressBar");
+            }
+            break;
+        }
+
+        case "NAVIGATE": {
+            const target = (actionObj.target || "").toLowerCase();
+            if (target.includes("cart") || target.includes("item")) {
+                $("cartItemsList")?.scrollIntoView({ behavior: "smooth" });
+                highlightElement("cartItemsList");
+            } else if (target.includes("bill") || target.includes("summary") || target.includes("checkout")) {
+                $("payCheckoutBtn")?.scrollIntoView({ behavior: "smooth" });
+                highlightElement("payCheckoutBtn");
+            } else if (target.includes("budget")) {
+                $("budgetSpent")?.scrollIntoView({ behavior: "smooth" });
+                highlightElement("budgetSpent");
+            }
+            break;
+        }
+
+        case "CHECKOUT": {
+            const payBtn = $("payCheckoutBtn");
+            if (payBtn && !payBtn.disabled) {
+                processCheckout();
+            } else {
+                alert("Your cart is empty! Please add some items before checking out.");
+            }
+            break;
+        }
+
+        default:
+            console.log("Unhandled agent action:", act);
+    }
+}
+
+function highlightElement(id) {
+    const el = $(id);
+    if (el) {
+        el.classList.add("ring-4", "ring-indigo-400/60", "transition", "duration-500");
+        setTimeout(() => el.classList.remove("ring-4", "ring-indigo-400/60"), 1800);
+    }
 }
 
 function askQuickPrompt(question) {
@@ -699,21 +791,22 @@ function playAssistantChime(isStartMic = false) {
     } catch (_) {}
 }
 
-function findBestFemaleVoice() {
+function findBestCalmClearVoice() {
     if (!availableVoices || availableVoices.length === 0) {
         loadVoices();
     }
-    // High-priority natural and pleasant female assistant voices
+    // High-priority natural, articulate, calm & clear voices
     const preferredVoices = [
         "Google UK English Female",
         "Google US English",
-        "Microsoft Jenny Online",
-        "Microsoft Aria Online",
+        "Microsoft Jenny Online (Natural)",
+        "Microsoft Aria Online (Natural)",
+        "Microsoft Sonia Online (Natural)",
         "Samantha",
         "Victoria",
         "Karen",
         "Veena",
-        "Zira",
+        "Moira",
         "Fiona",
         "Tessa"
     ];
@@ -723,12 +816,12 @@ function findBestFemaleVoice() {
         if (found) return found;
     }
 
-    // Try finding any voice with female/natural indicator
-    const femaleVoice = availableVoices.find(v => 
-        (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("natural")) && 
+    // Try finding natural neural or articulate voice
+    const naturalVoice = availableVoices.find(v => 
+        (v.name.toLowerCase().includes("natural") || v.name.toLowerCase().includes("premium") || v.name.toLowerCase().includes("female")) && 
         v.lang.startsWith("en")
     );
-    if (femaleVoice) return femaleVoice;
+    if (naturalVoice) return naturalVoice;
 
     // Fallback to English voice
     const enVoice = availableVoices.find(v => v.lang === "en-IN" || v.lang === "en-US" || v.lang.startsWith("en"));
@@ -749,12 +842,12 @@ function speakText(text) {
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
 
-        // Warm, friendly & cheerful assistant tone parameters
-        utterance.pitch = 1.25;  // Warm, higher, polite tone
-        utterance.rate = 1.02;   // Natural, conversational pace
+        // Clear, sharp, calm & sentiment-rich vocal acoustic settings
+        utterance.pitch = 1.05;  // Balanced, calm, soothing resonance (not overly high-pitched)
+        utterance.rate = 0.98;   // Measured, articulate, crystal-clear pacing
         utterance.volume = 1.0;
 
-        const voice = findBestFemaleVoice();
+        const voice = findBestCalmClearVoice();
         if (voice) {
             utterance.voice = voice;
             utterance.lang = voice.lang;
@@ -766,6 +859,18 @@ function speakText(text) {
     } catch (err) {
         console.warn("Speech synthesis error:", err);
     }
+}
+
+// Welcoming voice greeting on opening / session start
+function speakWelcomeGreeting() {
+    const hour = new Date().getHours();
+    const timeGreeting = hour < 12 ? "Good morning" : (hour < 17 ? "Good afternoon" : "Good evening");
+    const welcomeMessage = `${timeGreeting}, and welcome to Smart Mart Supermarket! I am Aura, your personal AI shopping agent. You can ask me to find products, add or remove items from your cart, or check you out anytime. Wishing you a peaceful shopping experience!`;
+    
+    // Play warm greeting
+    setTimeout(() => {
+        speakText(welcomeMessage);
+    }, 1200);
 }
 
 function initVoiceRecognition() {
@@ -965,6 +1070,9 @@ function setupEventListeners() {
 async function init() {
     setupEventListeners();
     updateBudgetTracker(0);
+
+    // Warm, calm welcoming voice greeting on opening
+    speakWelcomeGreeting();
 
     // Prompt user to set their shopping budget in the beginning
     if (!sessionStorage.getItem("budget_prompted")) {

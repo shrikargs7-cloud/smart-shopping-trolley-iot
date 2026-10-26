@@ -168,14 +168,14 @@
     <!-- Floating Gemini AI In-Store Assistant -->
     <div id="aiChatWidget" class="fixed bottom-6 right-6 z-40 flex flex-col items-end">
         <!-- Chat Panel (hidden by default) -->
-        <div id="aiChatPanel" class="hidden mb-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[480px]">
+        <div id="aiChatPanel" class="hidden mb-3 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[480px]">
             <!-- Header -->
             <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white px-4 py-3 flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <span class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-base">🤖</span>
                     <div>
-                        <h4 class="font-bold text-sm">Store Navigator AI</h4>
-                        <p class="text-[10px] text-blue-200">Powered by Gemini 3.5 Flash</p>
+                        <h4 class="font-bold text-sm">Aura AI Shopping Agent</h4>
+                        <p class="text-[10px] text-blue-200">Voice-Controlled &amp; Autonomous Cart Agent</p>
                     </div>
                 </div>
                 <button id="closeAiChatBtn" class="text-white/80 hover:text-white text-lg font-bold">×</button>
@@ -186,27 +186,26 @@
                 <div class="flex items-start space-x-2">
                     <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs">🤖</div>
                     <div class="bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-700 shadow-sm leading-relaxed">
-                        Hello! 👋 I am your Smart Trolley Navigator. Ask me where any product is located, its price, or available stock!
+                        Hello! 👋 I am <strong>Aura</strong>, your calm AI Shopping Agent. You can speak to me naturally: tell me to add or remove items, locate products, set budgets, or self-checkout!
                     </div>
                 </div>
             </div>
 
-            <!-- Suggested Quick Questions (Products & Store Queries) -->
+            <!-- Suggested Quick Agent Actions (Voice/Tap) -->
             <div class="px-3 py-1.5 bg-slate-100 border-t border-slate-200 flex gap-1.5 overflow-x-auto text-[11px] whitespace-nowrap">
-                <button onclick="askQuickPrompt('Where is Milk located?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🥛 Where is Milk?</button>
-                <button onclick="askQuickPrompt('What are store opening hours?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🕒 Store Hours?</button>
-                <button onclick="askQuickPrompt('What payment methods are accepted?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">💳 Payments?</button>
-                <button onclick="askQuickPrompt('How do I use this Smart Trolley?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🛒 Trolley Guide</button>
-                <button onclick="askQuickPrompt('Where are the restrooms located?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🚻 Washrooms?</button>
+                <button onclick="askQuickPrompt('Add 1 Milk to my cart')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">➕ Add Milk</button>
+                <button onclick="askQuickPrompt('Where is Bread located?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🍞 Locate Bread</button>
+                <button onclick="askQuickPrompt('Set my budget to 1000 rupees')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">💳 Budget ₹1,000</button>
+                <button onclick="askQuickPrompt('Scroll to my bill and checkout')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🛍️ Pay &amp; Checkout</button>
             </div>
 
             <!-- Input Bar -->
             <form id="aiChatForm" class="p-2.5 bg-white border-t border-slate-200 flex gap-2 items-center">
-                <input id="aiChatInput" type="text" placeholder="Ask: Which rack has Orange Juice?" 
+                <input id="aiChatInput" type="text" placeholder="Speak or type: 'Add 1 Milk'..." 
                        class="flex-1 bg-slate-100 text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                 
                 <!-- Voice Input Microphone Button -->
-                <button type="button" id="aiVoiceBtn" title="Speak to AI" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition">
+                <button type="button" id="aiVoiceBtn" title="Speak to Aura" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition">
                     <i class="fas fa-microphone"></i>
                 </button>
 
@@ -224,7 +223,7 @@
         <!-- Toggle Button -->
         <button id="toggleAiChatBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-full shadow-lg flex items-center space-x-2 transition hover:scale-105">
             <span class="text-lg">🤖</span>
-            <span class="text-xs font-semibold">Find Rack &amp; Product</span>
+            <span class="text-xs font-semibold">Talk to Aura Agent</span>
         </button>
     </div>
 
