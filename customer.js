@@ -795,26 +795,35 @@ function findBestCalmClearVoice() {
     if (!availableVoices || availableVoices.length === 0) {
         loadVoices();
     }
-    // High-priority natural, articulate, calm & clear voices
+    // High-priority British / UK Professional Concierge voices
     const preferredVoices = [
         "Google UK English Female",
-        "Google US English",
+        "Google UK English Male",
+        "Microsoft Sonia Online (Natural) - English (United Kingdom)",
+        "Microsoft Ryan Online (Natural) - English (United Kingdom)",
+        "Microsoft Libby Online (Natural) - English (United Kingdom)",
+        "Microsoft Maisie Online (Natural) - English (United Kingdom)",
+        "Serena",
+        "Oliver",
+        "Daniel",
+        "Kate",
+        "Fiona",
+        "Stephanie",
+        "Google UK English",
         "Microsoft Jenny Online (Natural)",
         "Microsoft Aria Online (Natural)",
-        "Microsoft Sonia Online (Natural)",
         "Samantha",
-        "Victoria",
-        "Karen",
-        "Veena",
-        "Moira",
-        "Fiona",
-        "Tessa"
+        "Victoria"
     ];
 
     for (const name of preferredVoices) {
         const found = availableVoices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
         if (found) return found;
     }
+
+    // Try finding any British (en-GB) voice on the system
+    const ukVoice = availableVoices.find(v => v.lang === "en-GB" || v.lang.startsWith("en-GB"));
+    if (ukVoice) return ukVoice;
 
     // Try finding natural neural or articulate voice
     const naturalVoice = availableVoices.find(v => 
@@ -842,9 +851,9 @@ function speakText(text) {
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
 
-        // Clear, sharp, calm & sentiment-rich vocal acoustic settings
-        utterance.pitch = 1.05;  // Balanced, calm, soothing resonance (not overly high-pitched)
-        utterance.rate = 0.98;   // Measured, articulate, crystal-clear pacing
+        // British Concierge: Sophisticated, articulate, calm & clear
+        utterance.pitch = 0.98;  // Elegant, composed, slightly deeper British timbre
+        utterance.rate = 0.94;   // Measured, aristocratic, crystal-clear pacing
         utterance.volume = 1.0;
 
         const voice = findBestCalmClearVoice();
@@ -852,7 +861,7 @@ function speakText(text) {
             utterance.voice = voice;
             utterance.lang = voice.lang;
         } else {
-            utterance.lang = 'en-IN';
+            utterance.lang = 'en-GB';
         }
 
         window.speechSynthesis.speak(utterance);
