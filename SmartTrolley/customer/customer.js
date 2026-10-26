@@ -493,6 +493,9 @@ async function askGeminiAssistant(userQuestion) {
 
     const cartSummary = Object.values(cart).map(i => `${i.name} (Qty: ${i.quantity}, Price: ₹${i.price})`).join(", ") || "Empty";
 
+    // 1. Try immediate local intent execution for instant feedback
+    const executedLocally = checkAndExecuteDirectIntent(userQuestion);
+
     try {
         let rawReply = "";
         
@@ -547,13 +550,15 @@ If the user commands an action (add item, remove item, clear cart, set budget, n
             el.innerHTML = speechText.replace(/\n/g, '<br>');
         }
 
-        // Execute Agent Autonomous Actions
-        if (actionData) {
+        // Execute Agent Autonomous Actions (if not already handled locally)
+        if (actionData && !executedLocally) {
             executeAgentAction(actionData);
         }
 
-        // Voice output with calm, clear, sentiment-rich synthesis
-        speakText(speechText);
+        // Voice output (if not already spoken by local intent)
+        if (!executedLocally) {
+            speakText(speechText);
+        }
     } catch (err) {
         console.error("Gemini API error:", err);
         const el = document.getElementById(placeholderId);
@@ -580,6 +585,85 @@ function parseAgentResponse(fullText) {
     }
 
     return { speechText, actionData };
+}
+
+// Local intent interceptor: executes immediate UI actions reliably even before/alongside AI
+function checkAndExecuteDirectIntent(phrase) {
+    const text = phrase.toLowerCase().trim();
+    console.log("⚡ Checking direct intent for:", text);
+
+    // 1. CLEAR CART
+    if (/clear.*cart|empty.*cart|remove.*all|delete.*all/i.test(text)) {
+        clearCart();
+        speakText("I have cleared your shopping cart.");
+        return true;
+    }
+
+    // 2. CHECKOUT / PAY
+    if (/check\s*out|pay.*bill|proceed.*payment|pay\s*now/i.test(text)) {
+        const payBtn = $("payCheckoutBtn");
+        if (payBtn && !payBtn.disabled) {
+            speakText("Certainly, taking you to self-checkout now.");
+            processCheckout();
+        } else {
+            speakText("Your cart is currently empty. Please add items before checking out.");
+        }
+        return true;
+    }
+
+    // 3. SET BUDGET (e.g. "set budget to 800", "budget 1000", "my budget is 500")
+    const budgetMatch = text.match(/(?:budget\s*(?:is|to)?\s*(?:of|rupees|rs\.?|inr)?\s*|set\s*budget\s*to?\s*)(\d+)/i);
+    if (budgetMatch && budgetMatch[1]) {
+        const amount = Number(budgetMatch[1]);
+        if (amount > 0) {
+            setShoppingBudget(amount);
+            speakText(`I have updated your shopping budget to ₹${amount}.`);
+            highlightElement("budgetProgressBar");
+            return true;
+        }
+    }
+
+    // 4. ADD ITEM (e.g. "add 1 milk", "add milk", "add two bread", "put milk", "include paneer")
+    const addMatch = text.match(/(?:add|put|buy|insert|include)\s*(?:(\d+|one|two|three|four|five)\s+)?([a-z\s]+?)(?:\s+to\s+cart|\s+in\s+cart|\s+to\s+my\s+cart|$)/i);
+    if (addMatch && addMatch[2]) {
+        let itemQuery = addMatch[2].trim().replace(/^(?:a|an|the|some)\s+/, "");
+        const wordNum = { one: 1, two: 2, three: 3, four: 4, five: 5 };
+        const qty = Number(addMatch[1]) || wordNum[addMatch[1]] || 1;
+
+        if (itemQuery.length > 2 && !itemQuery.includes("budget") && !itemQuery.includes("checkout")) {
+            executeAgentAction({
+                action: "ADD_ITEM",
+                item: itemQuery,
+                quantity: qty
+            });
+            speakText(`I've added ${qty} ${itemQuery} to your cart.`);
+            return true;
+        }
+    }
+
+    // 5. REMOVE ITEM (e.g. "remove milk", "delete bread", "take out the chips")
+    const removeMatch = text.match(/(?:remove|delete|take\s*out|drop)\s*(?:the\s+)?([a-z\s]+?)(?:\s+from\s+cart|$)/i);
+    if (removeMatch && removeMatch[1]) {
+        const itemQuery = removeMatch[1].trim();
+        if (itemQuery.length > 2) {
+            executeAgentAction({
+                action: "REMOVE_ITEM",
+                item: itemQuery
+            });
+            speakText(`I've removed ${itemQuery} from your cart.`);
+            return true;
+        }
+    }
+
+    // 6. SCROLL / NAVIGATE
+    if (/show.*bill|summary|scroll.*bottom/i.test(text)) {
+        $("summaryPayable")?.scrollIntoView({ behavior: "smooth" });
+        highlightElement("summaryPayable");
+        speakText("Here is your order bill summary.");
+        return true;
+    }
+
+    return false;
 }
 
 // Autonomous Agent Action Executor
@@ -1007,12 +1091,12 @@ function initWakeWordListener() {
                     askGeminiAssistant(commandAfterWake);
                     if (input) input.value = "";
                 } else {
-                    // Customer just said "Hey Aura" -> chime, acknowledge & listen for command
+                    // Customer just said "Hey Aura" -> chime, acknowledge & immediately activate listening mic
                     playAssistantChime(true);
                     speakText("Yes, I'm here. How may I help you?");
                     setTimeout(() => {
-                        toggleVoiceRecognition();
-                    }, 1600);
+                        if (!isRecognizing) toggleVoiceRecognition();
+                    }, 1400);
                 }
                 break;
             }
