@@ -20,6 +20,9 @@ let alertedMilestones = { 50: false, 90: false, 100: false };
 let speechEnabled = true;
 let isRecognizing = false;
 let speechRecognizer = null;
+let wakeWordRecognizer = null;
+let wakeWordEnabled = true;
+let isAwake = false;
 let lastRecipeCheckCartHash = "";
 
 const $ = id => document.getElementById(id);
@@ -892,7 +895,7 @@ function initVoiceRecognition() {
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-IN';
+    recognition.lang = 'en-GB';
 
     recognition.onstart = () => {
         isRecognizing = true;
@@ -922,6 +925,10 @@ function initVoiceRecognition() {
 
     recognition.onend = () => {
         stopVoiceRecognition();
+        // Resume wake word listener if enabled
+        if (wakeWordEnabled && !isRecognizing) {
+            setTimeout(startWakeWordListener, 400);
+        }
     };
 
     return recognition;
@@ -950,7 +957,123 @@ function toggleVoiceRecognition() {
     if (isRecognizing) {
         speechRecognizer.stop();
     } else {
+        // Pause wake word listener while direct recognition runs
+        if (wakeWordRecognizer) {
+            try { wakeWordRecognizer.stop(); } catch (_) {}
+        }
         speechRecognizer.start();
+    }
+}
+
+// -------------------------------------------------------------------------
+// Hands-free Wake-Word Engine ("Hey Aura" / "Hi Aura" / "Okay Aura")
+// -------------------------------------------------------------------------
+function initWakeWordListener() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return null;
+
+    const recognizer = new SpeechRecognition();
+    recognizer.continuous = true;
+    recognizer.interimResults = true;
+    recognizer.lang = 'en-GB';
+
+    recognizer.onresult = (event) => {
+        if (isRecognizing) return;
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const rawPhrase = event.results[i][0].transcript.toLowerCase().trim();
+            console.log("👂 Ambient speech:", rawPhrase);
+
+            // Check wake phrase variants: "hey aura", "hi aura", "aura", "ok aura", "hello aura"
+            const wakeMatch = rawPhrase.match(/\b(hey\s+aura|hi\s+aura|hello\s+aura|ok\s+aura|okay\s+aura|aura)\b/i);
+            
+            if (wakeMatch) {
+                console.log("⚡ [WAKE WORD DETECTED]:", wakeMatch[0]);
+                
+                // Open panel if hidden
+                const panel = $("aiChatPanel");
+                if (panel) panel.classList.remove("hidden");
+
+                // Extract any command spoken immediately after wake word
+                const commandAfterWake = rawPhrase.replace(wakeMatch[0], "").trim();
+
+                // Stop wake word recognizer temporarily
+                try { recognizer.stop(); } catch (_) {}
+
+                if (commandAfterWake.length > 2) {
+                    // Customer said: "Hey Aura add 1 milk"
+                    const input = $("aiChatInput");
+                    if (input) input.value = commandAfterWake;
+                    askGeminiAssistant(commandAfterWake);
+                    if (input) input.value = "";
+                } else {
+                    // Customer just said "Hey Aura" -> chime, acknowledge & listen for command
+                    playAssistantChime(true);
+                    speakText("Yes, I'm here. How may I help you?");
+                    setTimeout(() => {
+                        toggleVoiceRecognition();
+                    }, 1600);
+                }
+                break;
+            }
+        }
+    };
+
+    recognizer.onerror = (e) => {
+        if (e.error !== "no-speech" && e.error !== "aborted") {
+            console.log("Wake-word listener notice:", e.error);
+        }
+    };
+
+    recognizer.onend = () => {
+        // Automatically restart to keep hands-free listening alive
+        if (wakeWordEnabled && !isRecognizing) {
+            setTimeout(startWakeWordListener, 600);
+        }
+    };
+
+    return recognizer;
+}
+
+function startWakeWordListener() {
+    if (!wakeWordEnabled || isRecognizing) return;
+    try {
+        if (!wakeWordRecognizer) {
+            wakeWordRecognizer = initWakeWordListener();
+        }
+        if (wakeWordRecognizer) {
+            wakeWordRecognizer.start();
+            updateWakeWordUI(true);
+        }
+    } catch (_) {}
+}
+
+function updateWakeWordUI(active) {
+    const dot = $("wakeWordDot");
+    const text = $("wakeWordText");
+    const btn = $("wakeWordToggleBtn");
+    if (!dot || !text) return;
+
+    if (active && wakeWordEnabled) {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+        text.textContent = "Hey Aura: Listening";
+        if (btn) btn.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 transition";
+    } else {
+        dot.className = "w-2 h-2 rounded-full bg-slate-400";
+        text.textContent = "Hey Aura: Paused";
+        if (btn) btn.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-slate-300 border border-white/20 transition";
+    }
+}
+
+function toggleWakeWord() {
+    wakeWordEnabled = !wakeWordEnabled;
+    if (wakeWordEnabled) {
+        startWakeWordListener();
+    } else {
+        if (wakeWordRecognizer) {
+            try { wakeWordRecognizer.stop(); } catch (_) {}
+        }
+        updateWakeWordUI(false);
     }
 }
 
@@ -1072,6 +1195,9 @@ function setupEventListeners() {
         });
     }
 
+    // Hands-Free Wake-Word Toggle Button
+    $("wakeWordToggleBtn")?.addEventListener("click", toggleWakeWord);
+
     setupAiChat();
 }
 
@@ -1082,6 +1208,11 @@ async function init() {
 
     // Warm, calm welcoming voice greeting on opening
     speakWelcomeGreeting();
+
+    // Start hands-free wake word listener after initial greeting
+    setTimeout(() => {
+        startWakeWordListener();
+    }, 2800);
 
     // Prompt user to set their shopping budget in the beginning
     if (!sessionStorage.getItem("budget_prompted")) {

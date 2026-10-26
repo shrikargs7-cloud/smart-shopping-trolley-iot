@@ -28,6 +28,12 @@
             </div>
 
             <div class="flex items-center space-x-3">
+                <!-- Hands-free "Hey Aura" Wake-Word Indicator / Toggle -->
+                <button id="wakeWordToggleBtn" title="Toggle 'Hey Aura' wake-word detection" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/20 transition">
+                    <span id="wakeWordDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="wakeWordText">Hey Aura: ON</span>
+                </button>
+
                 <div class="flex items-center space-x-2 bg-black/25 px-3 py-1.5 rounded-full text-xs border border-white/10">
                     <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
                     <span id="statusText">Connecting...</span>
