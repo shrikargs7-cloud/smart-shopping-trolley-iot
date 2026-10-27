@@ -492,6 +492,11 @@ function updateLowStockReorderMonitor(items) {
             : "bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full";
     }
 
+    const mobileBadge = $("mobileReorderBadge");
+    if (mobileBadge) {
+        mobileBadge.textContent = criticalItems.length;
+    }
+
     const countText = $("criticalItemsCountText");
     const namesText = $("criticalItemsNamesText");
     const statusBadge = $("reorderStatusBadge");
@@ -719,6 +724,35 @@ function openEditDialog(uid) {
 // 7. Event Listeners Setup
 // -------------------------------------------------------------------------
 function setupEventListeners() {
+    // Mobile Navigation Drawer Toggle & Close
+    const mobileNavToggleBtn = $("mobileNavToggleBtn");
+    const closeMobileNavBtn = $("closeMobileNavBtn");
+    const mobileNavOverlay = $("mobileNavOverlay");
+    const adminSidebar = $("adminSidebar");
+
+    function openMobileSidebar() {
+        if (adminSidebar) adminSidebar.classList.add("mobile-open");
+        if (mobileNavOverlay) mobileNavOverlay.classList.remove("hidden");
+    }
+
+    function closeMobileSidebar() {
+        if (adminSidebar) adminSidebar.classList.remove("mobile-open");
+        if (mobileNavOverlay) mobileNavOverlay.classList.add("hidden");
+    }
+
+    if (mobileNavToggleBtn) mobileNavToggleBtn.addEventListener("click", openMobileSidebar);
+    if (closeMobileNavBtn) closeMobileNavBtn.addEventListener("click", closeMobileSidebar);
+    if (mobileNavOverlay) mobileNavOverlay.addEventListener("click", closeMobileSidebar);
+
+    // Auto-close drawer when mobile sidebar links are tapped
+    document.querySelectorAll(".sidebar-link").forEach(link => {
+        link.addEventListener("click", () => {
+            if (window.innerWidth < 1024) {
+                closeMobileSidebar();
+            }
+        });
+    });
+
     // Status Filter Tabs
     document.querySelectorAll(".status-tab").forEach(tab => {
         tab.addEventListener("click", () => {

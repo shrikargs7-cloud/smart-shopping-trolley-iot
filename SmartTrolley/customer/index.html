@@ -16,46 +16,47 @@
 
     <!-- Top Navigation Bar -->
     <header class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white shadow-lg sticky top-0 z-30">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shadow-inner">
+        <div class="max-w-6xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex items-center space-x-2.5 sm:space-x-3">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 flex items-center justify-center text-lg sm:text-xl shadow-inner shrink-0">
                     🛒
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight">Smart Cart <span class="text-blue-200 text-sm font-normal">#TRL-01</span></h1>
-                    <p class="text-xs text-blue-200">Cashier-less Self Checkout</p>
+                    <h1 class="text-lg sm:text-xl font-bold tracking-tight leading-tight">Smart Cart <span class="text-blue-200 text-xs sm:text-sm font-normal">#TRL-01</span></h1>
+                    <p class="text-[10px] sm:text-xs text-blue-200">Cashier-less Self Checkout</p>
                 </div>
             </div>
 
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 sm:space-x-3 ml-auto sm:ml-0">
                 <!-- Hands-free "Hey Aura" Wake-Word Indicator / Toggle -->
-                <button id="wakeWordToggleBtn" title="Toggle 'Hey Aura' wake-word detection" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/20 transition">
+                <button id="wakeWordToggleBtn" title="Toggle 'Hey Aura' wake-word detection" class="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/20 transition shrink-0">
                     <span id="wakeWordDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span id="wakeWordText">Hey Aura: ON</span>
                 </button>
 
-                <div class="flex items-center space-x-2 bg-black/25 px-3 py-1.5 rounded-full text-xs border border-white/10">
-                    <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <div class="flex items-center space-x-1.5 sm:space-x-2 bg-black/25 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs border border-white/10 shrink-0">
+                    <span id="statusDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
                     <span id="statusText">Connecting...</span>
                 </div>
-                <a href="/admin" class="text-xs bg-white/10 hover:bg-white/20 transition px-3 py-1.5 rounded-lg border border-white/20 flex items-center space-x-1.5">
+                <a href="/admin" class="text-[11px] sm:text-xs bg-white/10 hover:bg-white/20 transition px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-white/20 flex items-center space-x-1 sm:space-x-1.5 shrink-0">
                     <i class="fas fa-boxes"></i>
-                    <span>Admin View</span>
+                    <span class="hidden sm:inline">Admin View</span>
+                    <span class="sm:hidden">Admin</span>
                 </a>
             </div>
         </div>
     </header>
 
     <!-- Main Content Container -->
-    <main class="max-w-6xl mx-auto w-full p-4 md:p-6 flex-1 flex flex-col lg:flex-row gap-6">
+    <main class="max-w-6xl mx-auto w-full p-3 sm:p-4 md:p-6 flex-1 flex flex-col lg:flex-row gap-4 sm:gap-6">
 
         <!-- Left Column: Scanned Cart Items -->
-        <section class="flex-1 flex flex-col gap-6">
+        <section class="flex-1 flex flex-col gap-4 sm:gap-6">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                <div class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
                     <div class="flex items-center space-x-2">
-                        <h2 class="font-bold text-slate-800 text-base">Your Scanned Items</h2>
-                        <span id="badgeCount" class="bg-blue-100 text-blue-700 font-bold text-xs px-2.5 py-0.5 rounded-full">0 items</span>
+                        <h2 class="font-bold text-slate-800 text-sm sm:text-base">Your Scanned Items</h2>
+                        <span id="badgeCount" class="bg-blue-100 text-blue-700 font-bold text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full">0 items</span>
                     </div>
                     <button id="clearCartBtn" class="text-xs text-rose-600 hover:text-rose-700 font-semibold hover:underline flex items-center space-x-1">
                         <i class="far fa-trash-can"></i>
@@ -63,7 +64,7 @@
                     </button>
                 </div>
 
-                <div class="flex-1 overflow-y-auto p-4 md:p-6 min-h-[350px]">
+                <div class="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 min-h-[300px] sm:min-h-[350px]">
                     <!-- Empty Cart Placeholder -->
                     <div id="emptyCartView" class="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
                         <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center text-3xl mb-3 text-slate-300">
@@ -172,9 +173,9 @@
     </main>
 
     <!-- Floating Gemini AI In-Store Assistant -->
-    <div id="aiChatWidget" class="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+    <div id="aiChatWidget" class="fixed bottom-3 sm:bottom-6 right-3 sm:right-6 z-40 flex flex-col items-end">
         <!-- Chat Panel (hidden by default) -->
-        <div id="aiChatPanel" class="hidden mb-3 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[480px]">
+        <div id="aiChatPanel" class="hidden mb-2 sm:mb-3 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[75vh] sm:h-[480px] max-h-[560px]">
             <!-- Header -->
             <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white px-4 py-3 flex items-center justify-between">
                 <div class="flex items-center space-x-2">
@@ -198,55 +199,55 @@
             </div>
 
             <!-- Suggested Quick Agent Actions (Voice/Tap) -->
-            <div class="px-3 py-1.5 bg-slate-100 border-t border-slate-200 flex gap-1.5 overflow-x-auto text-[11px] whitespace-nowrap">
-                <button onclick="askQuickPrompt('Add 1 Milk to my cart')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">➕ Add Milk</button>
-                <button onclick="askQuickPrompt('Where is Bread located?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🍞 Locate Bread</button>
-                <button onclick="askQuickPrompt('Set my budget to 1000 rupees')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">💳 Budget ₹1,000</button>
-                <button onclick="askQuickPrompt('Scroll to my bill and checkout')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700">🛍️ Pay &amp; Checkout</button>
+            <div class="px-3 py-2 bg-slate-100 border-t border-slate-200 flex gap-1.5 overflow-x-auto text-[11px] whitespace-nowrap scrollbar-none">
+                <button onclick="askQuickPrompt('Add 1 Milk to my cart')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700 shrink-0">➕ Add Milk</button>
+                <button onclick="askQuickPrompt('Where is Bread located?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700 shrink-0">🍞 Locate Bread</button>
+                <button onclick="askQuickPrompt('Set my budget to 1000 rupees')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700 shrink-0">💳 Budget ₹1,000</button>
+                <button onclick="askQuickPrompt('Scroll to my bill and checkout')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700 shrink-0">🛍️ Pay &amp; Checkout</button>
             </div>
 
             <!-- Input Bar -->
-            <form id="aiChatForm" class="p-2.5 bg-white border-t border-slate-200 flex gap-2 items-center">
+            <form id="aiChatForm" class="p-2 sm:p-2.5 bg-white border-t border-slate-200 flex gap-1.5 sm:gap-2 items-center">
                 <input id="aiChatInput" type="text" placeholder="Speak or type: 'Add 1 Milk'..." 
                        class="flex-1 bg-slate-100 text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                 
                 <!-- Voice Input Microphone Button -->
-                <button type="button" id="aiVoiceBtn" title="Speak to Aura" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition">
+                <button type="button" id="aiVoiceBtn" title="Speak to Aura" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition shrink-0">
                     <i class="fas fa-microphone"></i>
                 </button>
 
                 <!-- Voice Output Toggle (Mute/Unmute speech) -->
-                <button type="button" id="aiSpeakerToggleBtn" title="Toggle voice response" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-blue-600 flex items-center justify-center text-xs transition">
+                <button type="button" id="aiSpeakerToggleBtn" title="Toggle voice response" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-blue-600 flex items-center justify-center text-xs transition shrink-0">
                     <i class="fas fa-volume-high"></i>
                 </button>
 
-                <button type="submit" id="aiSendBtn" class="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 text-xs font-bold transition flex items-center justify-center">
+                <button type="submit" id="aiSendBtn" class="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 text-xs font-bold transition flex items-center justify-center shrink-0">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </form>
         </div>
 
         <!-- Toggle Button -->
-        <button id="toggleAiChatBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-full shadow-lg flex items-center space-x-2 transition hover:scale-105">
-            <span class="text-lg">🤖</span>
+        <button id="toggleAiChatBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2.5 sm:py-3 px-3.5 sm:px-4 rounded-full shadow-lg flex items-center space-x-2 transition hover:scale-105">
+            <span class="text-base sm:text-lg">🤖</span>
             <span class="text-xs font-semibold">Talk to Aura Agent</span>
         </button>
     </div>
 
     <!-- Initial Shopping Budget Setup Modal -->
-    <dialog id="budgetModal" class="rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-md w-full">
-        <div class="bg-white p-6 rounded-2xl">
-            <div class="w-14 h-14 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-2xl mb-3">
+    <dialog id="budgetModal" class="rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-md w-[calc(100vw-2rem)] sm:w-full mx-auto my-auto">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-xl sm:text-2xl mb-3">
                 <i class="fas fa-wallet"></i>
             </div>
-            <h3 class="text-center text-xl font-bold text-slate-900">Set Shopping Budget</h3>
-            <p class="text-center text-xs text-slate-500 mt-1 mb-5">
+            <h3 class="text-center text-lg sm:text-xl font-bold text-slate-900">Set Shopping Budget</h3>
+            <p class="text-center text-xs text-slate-500 mt-1 mb-4 sm:mb-5">
                 Track your spending in real time. We'll automatically alert you when you reach <span class="font-bold text-blue-600">50%</span> and <span class="font-bold text-amber-600">90%</span> of your target.
             </p>
 
             <!-- Quick Budget Presets -->
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Select a Budget:</label>
-            <div class="grid grid-cols-4 gap-2 mb-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                 <button type="button" onclick="selectPresetBudget(500)" class="preset-btn py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-400 text-slate-700 transition">₹500</button>
                 <button type="button" onclick="selectPresetBudget(1000)" class="preset-btn py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-400 text-slate-700 transition">₹1,000</button>
                 <button type="button" onclick="selectPresetBudget(1500)" class="preset-btn py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-400 text-slate-700 transition">₹1,500</button>
@@ -261,7 +262,7 @@
                     <input id="customBudgetInput" type="number" min="50" step="50" placeholder="500" value="500"
                            class="w-full pl-8 pr-3 py-2 text-sm font-bold bg-slate-50 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
                 </div>
-                <button id="saveBudgetModalBtn" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition">
+                <button id="saveBudgetModalBtn" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3.5 sm:px-4 py-2 rounded-xl text-xs transition shrink-0">
                     Set Budget
                 </button>
             </div>
@@ -273,15 +274,15 @@
     </dialog>
 
     <!-- Receipt / Success Modal -->
-    <dialog id="receiptModal" class="rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-md w-full">
-        <div class="bg-white p-6 rounded-2xl">
-            <div class="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl mb-3">
+    <dialog id="receiptModal" class="rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-md w-[calc(100vw-2rem)] sm:w-full mx-auto my-auto">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-xl sm:text-2xl mb-3">
                 <i class="fas fa-check"></i>
             </div>
-            <h3 class="text-center text-xl font-bold text-slate-900">Payment Successful!</h3>
+            <h3 class="text-center text-lg sm:text-xl font-bold text-slate-900">Payment Successful!</h3>
             <p class="text-center text-xs text-slate-500 mt-1">Cashier-less self-billing completed</p>
 
-            <div class="my-5 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+            <div class="my-4 sm:my-5 p-3.5 sm:p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
                 <div class="flex justify-between text-slate-500">
                     <span>Receipt No:</span>
                     <span id="receiptNumber" class="font-mono font-bold text-slate-800">#REC-000000</span>
@@ -308,6 +309,6 @@
     </dialog>
 
     <script src="config.local.js"></script>
-    <script src="customer.js?v=4"></script>
+    <script src="customer.js?v=5"></script>
 </body>
 </html>

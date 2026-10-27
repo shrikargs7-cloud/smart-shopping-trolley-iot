@@ -75,3 +75,19 @@ dialog::backdrop {
     transform: translateY(-2px);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
+
+/* Mobile Sidebar Drawer Open State */
+#adminSidebar.mobile-open {
+    transform: translateX(0) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Touch friendly responsive table */
+.responsive-table {
+    min-width: 640px;
+}
+
+/* Smooth momentum scrolling */
+.smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+}

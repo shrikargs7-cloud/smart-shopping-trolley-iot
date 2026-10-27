@@ -351,28 +351,28 @@ function renderCart() {
     if (listView) {
         listView.classList.remove("hidden");
         listView.innerHTML = items.map(item => `
-            <div class="slide-in bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-4">
+            <div class="slide-in bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="flex items-center space-x-3 flex-1 min-w-0">
-                    <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
                         🏷️
                     </div>
-                    <div class="min-w-0">
+                    <div class="min-w-0 flex-1">
                         <h4 class="font-bold text-slate-800 text-sm truncate">${escapeHTML(item.name)}</h4>
                         <p class="text-xs text-slate-400 font-mono mt-0.5">
-                            <span class="bg-slate-200/80 text-slate-700 px-1.5 py-0.5 rounded">${item.uid}</span>
+                            <span class="bg-slate-200/80 text-slate-700 px-1.5 py-0.5 rounded text-[11px]">${item.uid}</span>
                             &bull; ₹${item.price.toFixed(2)} each
                         </p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-4 shrink-0">
+                <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
                     <div class="flex items-center border border-slate-200 bg-white rounded-lg shadow-sm">
                         <button onclick="changeQuantity('${item.uid}', -1)" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 font-bold text-slate-600 rounded-l-lg transition">-</button>
                         <span class="w-8 text-center text-sm font-bold">${item.quantity}</span>
                         <button onclick="changeQuantity('${item.uid}', 1)" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 font-bold text-slate-600 rounded-r-lg transition">+</button>
                     </div>
 
-                    <div class="text-right w-24">
+                    <div class="text-right sm:w-24">
                         <div class="font-extrabold text-slate-900 text-base">₹${(item.price * item.quantity).toFixed(2)}</div>
                         <button onclick="removeItem('${item.uid}')" class="text-[11px] text-rose-500 hover:text-rose-700 hover:underline">Remove</button>
                     </div>

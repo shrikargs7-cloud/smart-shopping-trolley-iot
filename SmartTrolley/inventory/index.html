@@ -36,53 +36,84 @@
         }
     </script>
 </head>
-<body class="bg-[#edf2f7] min-h-screen text-slate-800 p-3 sm:p-6 lg:p-8 flex items-center justify-center font-sans antialiased">
+<body class="bg-[#edf2f7] min-h-screen text-slate-800 p-0 sm:p-4 lg:p-8 flex items-center justify-center font-sans antialiased">
 
     <!-- Main Outer Container / Rounded Window Card -->
-    <div class="w-full max-w-[1520px] bg-white rounded-[28px] shadow-2xl shadow-slate-300/60 border border-slate-200/70 overflow-hidden flex flex-col lg:flex-row min-h-[920px]">
+    <div class="w-full max-w-[1520px] bg-white rounded-none sm:rounded-[28px] shadow-2xl shadow-slate-300/60 border-0 sm:border border-slate-200/70 overflow-hidden flex flex-col lg:flex-row min-h-screen lg:min-h-[920px] relative">
 
-        <!-- Left Sidebar Navigation -->
-        <aside class="w-full lg:w-64 bg-white border-r border-slate-100 flex flex-col justify-between p-6 shrink-0">
+        <!-- Mobile Top Bar (< lg screens) -->
+        <div class="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-100 sticky top-0 z-30">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/30">
+                    <i class="fas fa-bag-shopping text-base"></i>
+                </div>
+                <div>
+                    <span class="text-lg font-extrabold tracking-tight text-slate-900 leading-none block">FreshCart</span>
+                    <span class="text-[10px] text-slate-400 font-medium">Store Admin</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <a href="#reorder" class="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold">
+                    <i class="fas fa-triangle-exclamation text-xs"></i>
+                    <span id="mobileReorderBadge" class="font-extrabold">2</span>
+                </a>
+                <button id="mobileNavToggleBtn" type="button" aria-label="Toggle navigation menu" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition">
+                    <i class="fas fa-bars text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Drawer Backdrop Overlay -->
+        <div id="mobileNavOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 hidden lg:hidden transition-opacity"></div>
+
+        <!-- Left Sidebar Navigation (Desktop static, Mobile slide-over drawer) -->
+        <aside id="adminSidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-100 flex flex-col justify-between p-6 shrink-0 transition-transform duration-300 -translate-x-full lg:translate-x-0 lg:static lg:w-64 lg:z-auto">
             <div>
-                <!-- FreshCart Logo -->
-                <div class="flex items-center space-x-3 mb-8 px-2">
-                    <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/30">
-                        <i class="fas fa-bag-shopping text-lg"></i>
+                <!-- FreshCart Logo & Mobile Close Button -->
+                <div class="flex items-center justify-between mb-8 px-2">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/30">
+                            <i class="fas fa-bag-shopping text-lg"></i>
+                        </div>
+                        <span class="text-xl font-extrabold tracking-tight text-slate-900">FreshCart</span>
                     </div>
-                    <span class="text-xl font-extrabold tracking-tight text-slate-900">FreshCart</span>
+                    <button id="closeMobileNavBtn" class="lg:hidden text-slate-400 hover:text-slate-700 p-1.5 rounded-lg text-lg">
+                        <i class="fas fa-xmark"></i>
+                    </button>
                 </div>
 
                 <!-- Main Section -->
                 <div class="mb-6">
                     <p class="text-[11px] font-bold tracking-wider uppercase text-slate-400 px-3 mb-2.5">Main</p>
                     <nav class="space-y-1">
-                        <a href="#overview" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                        <a href="#overview" class="sidebar-link flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
                             <i class="fas fa-table-cells-large text-slate-400 w-4 text-center"></i>
                             <span>Dashboard</span>
                         </a>
-                        <a href="#orders" onclick="alert('Orders module connected to Trolley Checkouts.')" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                        <a href="#orders" onclick="alert('Orders module connected to Trolley Checkouts.')" class="sidebar-link flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
                             <i class="fas fa-cart-shopping text-slate-400 w-4 text-center"></i>
                             <span>Orders</span>
                         </a>
                         <!-- Inventory Tab -->
-                        <a href="#inventory" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-brand-600 bg-brand-50 transition shadow-sm border border-brand-100/80">
+                        <a href="#inventory" class="sidebar-link flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-brand-600 bg-brand-50 transition shadow-sm border border-brand-100/80">
                             <i class="fas fa-box-archive text-brand-600 w-4 text-center"></i>
                             <span>Inventory</span>
                         </a>
                         <!-- Reports & Analytics Tab -->
-                        <a href="#analytics" id="navAnalyticsBtn" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                        <a href="#analytics" id="navAnalyticsBtn" class="sidebar-link flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
                             <i class="fas fa-chart-pie text-slate-400 w-4 text-center"></i>
                             <span>Analytics &amp; Rush</span>
                         </a>
                         <!-- Low Stock Auto-Reorder Alerts -->
-                        <a href="#reorder" id="navReorderBtn" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                        <a href="#reorder" id="navReorderBtn" class="sidebar-link flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
                             <div class="flex items-center space-x-3.5">
                                 <i class="fas fa-triangle-exclamation text-rose-500 w-4 text-center"></i>
                                 <span>Reorder Alerts</span>
                             </div>
                             <span id="sidebarReorderBadge" class="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">2</span>
                         </a>
-                        <a href="#activity" id="navRfidBtn" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                        <a href="#activity" id="navRfidBtn" class="sidebar-link flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
                             <i class="fas fa-rss text-slate-400 w-4 text-center"></i>
                             <span>Live RFID Scans</span>
                         </a>
@@ -93,15 +124,15 @@
                 <div>
                     <p class="text-[11px] font-bold tracking-wider uppercase text-slate-400 px-3 mb-2.5">Other</p>
                     <nav class="space-y-1">
-                        <a href="#settings" onclick="openAddDialog()" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                        <a href="#settings" onclick="openAddDialog()" class="sidebar-link flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
                             <i class="fas fa-gear text-slate-400 w-4 text-center"></i>
                             <span>Settings</span>
                         </a>
-                        <a href="#help" onclick="alert('Supermarket Inventory Admin: Connect with Shrikar / IoT Smart Trolley Team')" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+                        <a href="#help" onclick="alert('Supermarket Inventory Admin: Connect with Shrikar / IoT Smart Trolley Team')" class="sidebar-link flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
                             <i class="fas fa-circle-question text-slate-400 w-4 text-center"></i>
                             <span>Help/Support</span>
                         </a>
-                        <a href="/" class="flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition">
+                        <a href="/" class="sidebar-link flex items-center space-x-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition">
                             <i class="fas fa-arrow-right-from-bracket text-slate-400 w-4 text-center"></i>
                             <span>Customer Portal</span>
                         </a>
@@ -124,33 +155,33 @@
         </aside>
 
         <!-- Right Main Content Area -->
-        <main class="flex-1 p-6 sm:p-8 lg:p-10 overflow-y-auto bg-white flex flex-col gap-6">
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto bg-white flex flex-col gap-5 sm:gap-6">
 
             <!-- Top Header Bar -->
-            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 pb-2">
                 <div>
-                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">Inventory Management</h1>
-                    <p class="text-xs text-slate-400 mt-1 font-medium">Monitor stock levels and manage product inventory.</p>
+                    <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Inventory Management</h1>
+                    <p class="text-xs text-slate-400 mt-0.5 sm:mt-1 font-medium">Monitor stock levels and manage product inventory.</p>
                 </div>
 
-                <div class="flex items-center space-x-3.5 self-start md:self-auto">
+                <div class="flex items-center space-x-2.5 sm:space-x-3.5 w-full md:w-auto">
                     <!-- Global Search Bar -->
-                    <div class="relative">
+                    <div class="relative flex-1 md:flex-initial">
                         <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                        <input id="globalSearchInput" type="text" placeholder="Search users, orders, products..."
-                               class="w-64 sm:w-80 bg-slate-50 border border-slate-200/80 rounded-full pl-9 pr-4 py-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition">
+                        <input id="globalSearchInput" type="text" placeholder="Search products, orders..."
+                               class="w-full sm:w-64 md:w-72 bg-slate-50 border border-slate-200/80 rounded-full pl-9 pr-4 py-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition">
                     </div>
 
                     <!-- Notification Bell -->
-                    <button id="notificationBtn" title="View RFID scans" class="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition relative">
+                    <button id="notificationBtn" title="View RFID scans" class="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition relative shrink-0">
                         <i class="far fa-bell text-xs"></i>
                         <span id="notifDot" class="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
                     </button>
 
                     <!-- Admin Profile Card -->
-                    <div class="flex items-center space-x-3 pl-2 border-l border-slate-200">
+                    <div class="flex items-center space-x-2.5 pl-2 border-l border-slate-200 shrink-0">
                         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Admin"
-                             class="w-9 h-9 rounded-full object-cover ring-2 ring-slate-100">
+                             class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover ring-2 ring-slate-100">
                         <div class="hidden sm:block text-left">
                             <p class="text-xs font-bold text-slate-900 leading-tight">Admin User</p>
                             <p class="text-[10px] text-slate-400 font-medium">admin@company.com</p>
@@ -245,9 +276,9 @@
                 </div>
 
                 <!-- Filters & Controls Row -->
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 pb-2 border-b border-slate-100">
                     <!-- Status Filter Tabs -->
-                    <div class="flex items-center space-x-2 overflow-x-auto text-xs whitespace-nowrap">
+                    <div class="flex items-center space-x-2 overflow-x-auto text-xs whitespace-nowrap pb-1 md:pb-0 scrollbar-none">
                         <button class="status-tab active px-3.5 py-1.5 rounded-full font-bold transition border" data-filter="all">All Products</button>
                         <button class="status-tab px-3.5 py-1.5 rounded-full font-semibold transition border border-transparent text-slate-500 hover:text-slate-800" data-filter="in_stock">In Stock</button>
                         <button class="status-tab px-3.5 py-1.5 rounded-full font-semibold transition border border-transparent text-slate-500 hover:text-slate-800" data-filter="low_stock">Low Stock</button>
@@ -255,24 +286,24 @@
                     </div>
 
                     <!-- Search & Action Icons -->
-                    <div class="flex items-center space-x-2">
-                        <div class="relative">
+                    <div class="flex items-center space-x-2 w-full md:w-auto">
+                        <div class="relative flex-1 md:flex-initial">
                             <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                             <input id="searchInput" type="text" placeholder="Search..."
-                                   class="w-48 sm:w-60 bg-slate-50 border border-slate-200 rounded-full pl-8 pr-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition">
+                                   class="w-full md:w-56 bg-slate-50 border border-slate-200 rounded-full pl-8 pr-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition">
                         </div>
-                        <button id="filterBtn" title="Filter by category" class="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 flex items-center justify-center text-xs transition">
+                        <button id="filterBtn" title="Filter by category" class="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 flex items-center justify-center text-xs transition shrink-0">
                             <i class="fas fa-sliders"></i>
                         </button>
-                        <button id="sortBtn" title="Sort products" class="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 flex items-center justify-center text-xs transition">
+                        <button id="sortBtn" title="Sort products" class="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 flex items-center justify-center text-xs transition shrink-0">
                             <i class="fas fa-arrow-down-wide-short"></i>
                         </button>
                     </div>
                 </div>
 
                 <!-- Products Table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
+                <div class="overflow-x-auto smooth-scroll">
+                    <table class="w-full text-left text-xs min-w-[650px]">
                         <thead>
                             <tr class="text-slate-400 font-semibold border-b border-slate-100">
                                 <th class="pb-3 pl-2">Product Name</th>
@@ -410,12 +441,12 @@
                         <p class="text-xs text-slate-400">Automated triggers dispatch email requisition to store manager &amp; suppliers when stock drops below 5 units</p>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2">
-                        <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+                        <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs flex-1 sm:flex-initial">
                             <span class="text-slate-400 mr-2"><i class="fas fa-envelope"></i></span>
-                            <input id="managerEmailInput" type="email" value="shrikargs7@gmail.com" class="bg-transparent font-medium text-slate-700 outline-none w-48 text-xs" title="Store Manager Notification Email">
+                            <input id="managerEmailInput" type="email" value="shrikargs7@gmail.com" class="bg-transparent font-medium text-slate-700 outline-none w-full sm:w-48 text-xs" title="Store Manager Notification Email">
                         </div>
-                        <button id="triggerReorderEmailBtn" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition shadow-sm shadow-rose-600/30">
+                        <button id="triggerReorderEmailBtn" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm shadow-rose-600/30 shrink-0">
                             <i class="fas fa-paper-plane text-xs"></i>
                             <span>Send Reorder Alert</span>
                         </button>
@@ -439,8 +470,8 @@
                 </div>
 
                 <!-- Low Stock Items Quick Action Table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
+                <div class="overflow-x-auto smooth-scroll">
+                    <table class="w-full text-left text-xs min-w-[620px]">
                         <thead>
                             <tr class="text-slate-400 font-semibold border-b border-slate-100">
                                 <th class="pb-2.5 pl-2">Product Name</th>
@@ -484,8 +515,8 @@
                     </span>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
+                <div class="overflow-x-auto smooth-scroll">
+                    <table class="w-full text-left text-xs min-w-[500px]">
                         <thead>
                             <tr class="text-slate-400 font-semibold border-b border-slate-100">
                                 <th class="pb-2.5 pl-2">Product</th>
@@ -508,8 +539,8 @@
     </div>
 
     <!-- Add / Edit Product Modal -->
-    <dialog id="productDialog" class="rounded-3xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-lg w-full">
-        <form id="productForm" class="bg-white p-6 sm:p-8 rounded-3xl">
+    <dialog id="productDialog" class="rounded-3xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-lg w-[calc(100vw-2rem)] sm:w-full mx-auto my-auto">
+        <form id="productForm" class="bg-white p-5 sm:p-8 rounded-3xl">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
                 <div>
                     <h3 id="dialogTitle" class="text-lg font-black text-slate-900">Add Product</h3>
@@ -525,7 +556,7 @@
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-mono text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Product Name</label>
                         <input id="name" required placeholder="e.g. Organic Bananas"
@@ -538,7 +569,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Price (₹)</label>
                         <input id="price" type="number" min="0" step="0.01" required placeholder="2.99"
@@ -551,11 +582,19 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Supplier / Rack Location</label>
                         <input id="rack" placeholder="e.g. Fresh Farms Co. (Aisle 1, Rack A)"
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Minimum Stock Alert</label>
+                        <input id="minStock" type="number" min="1" placeholder="100" value="100"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
+                    </div>
+                </div>
+            </div>
                     </div>
                     <div>
                         <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Minimum Stock Alert</label>
