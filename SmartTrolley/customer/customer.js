@@ -878,49 +878,42 @@ function playAssistantChime(isStartMic = false) {
     } catch (_) {}
 }
 
-function findBestCalmClearVoice() {
+function findBestSiriVoice() {
     if (!availableVoices || availableVoices.length === 0) {
         loadVoices();
     }
-    // High-priority British / UK Professional Concierge voices
-    const preferredVoices = [
-        "Google UK English Female",
-        "Google UK English Male",
-        "Microsoft Sonia Online (Natural) - English (United Kingdom)",
-        "Microsoft Ryan Online (Natural) - English (United Kingdom)",
-        "Microsoft Libby Online (Natural) - English (United Kingdom)",
-        "Microsoft Maisie Online (Natural) - English (United Kingdom)",
-        "Serena",
-        "Oliver",
-        "Daniel",
-        "Kate",
-        "Fiona",
-        "Stephanie",
-        "Google UK English",
-        "Microsoft Jenny Online (Natural)",
-        "Microsoft Aria Online (Natural)",
-        "Samantha",
-        "Victoria"
+
+    // High-priority Siri-like crisp, sharp female voices across macOS, iOS, Chrome & Windows
+    const siriPreferredNames = [
+        "Samantha",                         // Apple's classic iconic US Siri voice (macOS / iOS)
+        "Siri",                             // Direct Siri voice on Apple platforms
+        "Victoria",                         // Crisp sharp female voice (Apple macOS)
+        "Karen",                            // Crisp Australian/US assistant voice
+        "Moira",                            // Irish/English crisp assistant voice
+        "Google US English",                // Crisp Google Assistant female voice
+        "Microsoft Jenny Online (Natural)", // Microsoft's sharp modern neural assistant
+        "Microsoft Aria Online (Natural)",  // Modern conversational assistant
+        "Microsoft Zira",                   // Windows crisp female voice
+        "Nicky",
+        "Ava",
+        "Allison",
+        "Tessa"
     ];
 
-    for (const name of preferredVoices) {
+    for (const name of siriPreferredNames) {
         const found = availableVoices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
         if (found) return found;
     }
 
-    // Try finding any British (en-GB) voice on the system
-    const ukVoice = availableVoices.find(v => v.lang === "en-GB" || v.lang.startsWith("en-GB"));
-    if (ukVoice) return ukVoice;
-
-    // Try finding natural neural or articulate voice
-    const naturalVoice = availableVoices.find(v => 
-        (v.name.toLowerCase().includes("natural") || v.name.toLowerCase().includes("premium") || v.name.toLowerCase().includes("female")) && 
+    // Look for any voice labeled with female or natural
+    const femaleVoice = availableVoices.find(v => 
+        (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("siri") || v.name.toLowerCase().includes("natural")) && 
         v.lang.startsWith("en")
     );
-    if (naturalVoice) return naturalVoice;
+    if (femaleVoice) return femaleVoice;
 
-    // Fallback to English voice
-    const enVoice = availableVoices.find(v => v.lang === "en-IN" || v.lang === "en-US" || v.lang.startsWith("en"));
+    // Fallback to US English or any English voice
+    const enVoice = availableVoices.find(v => v.lang === "en-US" || v.lang.startsWith("en"));
     return enVoice || null;
 }
 
@@ -929,7 +922,7 @@ function speakText(text) {
     try {
         window.speechSynthesis.cancel(); // Stop any ongoing speech
 
-        // Play gentle audio chime before speaking
+        // Play gentle crisp audio chime before speaking
         playAssistantChime(false);
 
         // Clean markdown symbols for cleaner pronunciation
@@ -938,17 +931,17 @@ function speakText(text) {
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
 
-        // British Concierge: Sophisticated, articulate, calm & clear
-        utterance.pitch = 0.98;  // Elegant, composed, slightly deeper British timbre
-        utterance.rate = 0.94;   // Measured, aristocratic, crystal-clear pacing
+        // Siri-like Acoustic Settings: Crisp, sharp, bright & articulate
+        utterance.pitch = 1.18;  // Bright, sharp, youthful female assistant tone
+        utterance.rate = 1.04;   // Fast, brisk, responsive Siri-like pacing
         utterance.volume = 1.0;
 
-        const voice = findBestCalmClearVoice();
+        const voice = findBestSiriVoice();
         if (voice) {
             utterance.voice = voice;
             utterance.lang = voice.lang;
         } else {
-            utterance.lang = 'en-GB';
+            utterance.lang = 'en-US';
         }
 
         window.speechSynthesis.speak(utterance);
