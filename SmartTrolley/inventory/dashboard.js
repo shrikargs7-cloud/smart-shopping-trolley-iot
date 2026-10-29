@@ -983,29 +983,65 @@ if ('speechSynthesis' in window) {
     window.speechSynthesis.onvoiceschanged = loadVoices;
 }
 
+function cleanConversationalText(text) {
+    if (!text) return "";
+    return text
+        .replace(/\[ACTION:[\s\S]*?\]/gi, '') // Strip action JSON tags
+        .replace(/[*_#`~\[\]\(\)\{\}]/g, ' ')   // Strip markdown syntax
+        .replace(/₹\s*(\d+(?:\.\d+)?)/g, '$1 rupees')
+        .replace(/Rs\.?\s*(\d+(?:\.\d+)?)/gi, '$1 rupees')
+        .replace(/Qty:\s*(\d+)/gi, ', quantity $1')
+        .replace(/\bUID:\s*/gi, '')
+        .replace(/\bUID\b/gi, 'ID')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function findBestSiriVoice() {
     if (!availableVoices || availableVoices.length === 0) {
         loadVoices();
     }
 
-    const siriPreferredNames = [
-        "Samantha", "Siri", "Victoria", "Karen", "Moira",
-        "Google US English", "Microsoft Jenny Online (Natural)",
-        "Microsoft Aria Online (Natural)", "Microsoft Zira", "Ava", "Allison"
+    // Prioritize natural, smooth British and Commonwealth accents (UK English)
+    // which flow naturally without choppy word-by-word stress
+    const preferredNaturalVoices = [
+        "Google UK English Female",         // Extremely smooth, natural UK English
+        "Microsoft Libby Online (Natural)", // Fluid modern neural assistant
+        "Microsoft Sonia Online (Natural)", // Natural British accent
+        "Serena",                           // Apple's UK Siri female voice
+        "Martha",                           // Apple UK natural voice
+        "Victoria",                         // Natural Commonwealth voice
+        "Google English India",             // Very natural Indian English pronunciation
+        "Microsoft Neerja Online (Natural)",// Natural Indian English neural voice
+        "Microsoft Heera",                  // Indian English
+        "Google US English",                // High quality natural US voice
+        "Microsoft Jenny Online (Natural)", // Natural US Neural
+        "Microsoft Aria Online (Natural)",  // Conversational US
+        "Samantha",                         // Classic Apple assistant
+        "Karen"                             // Australian assistant
     ];
 
-    for (const name of siriPreferredNames) {
+    for (const name of preferredNaturalVoices) {
         const found = availableVoices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
         if (found) return found;
     }
 
-    const femaleVoice = availableVoices.find(v => 
-        (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("siri") || v.name.toLowerCase().includes("natural")) && 
+    // Try any British English voice (en-GB) for smooth, natural cadence
+    const ukVoice = availableVoices.find(v => v.lang === "en-GB" || v.lang.startsWith("en-GB"));
+    if (ukVoice) return ukVoice;
+
+    // Try any Indian English voice (en-IN)
+    const inVoice = availableVoices.find(v => v.lang === "en-IN" || v.lang.startsWith("en-IN"));
+    if (inVoice) return inVoice;
+
+    // Fallback to any natural English voice
+    const naturalVoice = availableVoices.find(v => 
+        (v.name.toLowerCase().includes("natural") || v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("siri")) && 
         v.lang.startsWith("en")
     );
-    if (femaleVoice) return femaleVoice;
+    if (naturalVoice) return naturalVoice;
 
-    return availableVoices.find(v => v.lang === "en-US" || v.lang.startsWith("en")) || null;
+    return availableVoices.find(v => v.lang.startsWith("en")) || null;
 }
 
 function playAssistantChime(isStartMic = false) {
@@ -1053,12 +1089,13 @@ function speakText(text) {
         window.speechSynthesis.cancel();
         playAssistantChime(false);
 
-        const cleanText = text.replace(/[*_#`~\[\]]/g, '').trim();
+        const cleanText = cleanConversationalText(text);
         if (!cleanText) return;
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.pitch = 1.18;  // Siri-like crisp female tone
-        utterance.rate = 1.04;   // Fast, articulate pacing
+        // Natural Conversational Acoustic Settings (no robotic syllable stressing)
+        utterance.pitch = 1.0;  // Standard human pitch prevents robotic staccato distortion
+        utterance.rate = 1.0;   // Natural conversational cadence
         utterance.volume = 1.0;
 
         const voice = findBestSiriVoice();
@@ -1066,7 +1103,7 @@ function speakText(text) {
             utterance.voice = voice;
             utterance.lang = voice.lang;
         } else {
-            utterance.lang = 'en-US';
+            utterance.lang = 'en-GB';
         }
 
         window.speechSynthesis.speak(utterance);

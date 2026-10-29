@@ -878,43 +878,65 @@ function playAssistantChime(isStartMic = false) {
     } catch (_) {}
 }
 
+function cleanConversationalText(text) {
+    if (!text) return "";
+    return text
+        .replace(/\[ACTION:[\s\S]*?\]/gi, '') // Strip action JSON tags
+        .replace(/[*_#`~\[\]\(\)\{\}]/g, ' ')   // Strip markdown formatting symbols
+        .replace(/₹\s*(\d+(?:\.\d+)?)/g, '$1 rupees')
+        .replace(/Rs\.?\s*(\d+(?:\.\d+)?)/gi, '$1 rupees')
+        .replace(/Qty:\s*(\d+)/gi, ', quantity $1')
+        .replace(/\bUID:\s*/gi, '')
+        .replace(/\bUID\b/gi, 'ID')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function findBestSiriVoice() {
     if (!availableVoices || availableVoices.length === 0) {
         loadVoices();
     }
 
-    // High-priority Siri-like crisp, sharp female voices across macOS, iOS, Chrome & Windows
-    const siriPreferredNames = [
-        "Samantha",                         // Apple's classic iconic US Siri voice (macOS / iOS)
-        "Siri",                             // Direct Siri voice on Apple platforms
-        "Victoria",                         // Crisp sharp female voice (Apple macOS)
-        "Karen",                            // Crisp Australian/US assistant voice
-        "Moira",                            // Irish/English crisp assistant voice
-        "Google US English",                // Crisp Google Assistant female voice
-        "Microsoft Jenny Online (Natural)", // Microsoft's sharp modern neural assistant
-        "Microsoft Aria Online (Natural)",  // Modern conversational assistant
-        "Microsoft Zira",                   // Windows crisp female voice
-        "Nicky",
-        "Ava",
-        "Allison",
-        "Tessa"
+    // Prioritize natural, smooth British and Commonwealth accents (UK English)
+    // which flow naturally without choppy word-by-word stress
+    const preferredNaturalVoices = [
+        "Google UK English Female",         // Extremely smooth, natural UK English
+        "Microsoft Libby Online (Natural)", // Fluid modern neural assistant
+        "Microsoft Sonia Online (Natural)", // Natural British accent
+        "Serena",                           // Apple's UK Siri female voice
+        "Martha",                           // Apple UK natural voice
+        "Victoria",                         // Natural Commonwealth voice
+        "Google English India",             // Very natural Indian English pronunciation
+        "Microsoft Neerja Online (Natural)",// Natural Indian English neural voice
+        "Microsoft Heera",                  // Indian English
+        "Google US English",                // High quality natural US voice
+        "Microsoft Jenny Online (Natural)", // Natural US Neural
+        "Microsoft Aria Online (Natural)",  // Conversational US
+        "Samantha",                         // Classic Apple assistant
+        "Karen"                             // Australian assistant
     ];
 
-    for (const name of siriPreferredNames) {
+    for (const name of preferredNaturalVoices) {
         const found = availableVoices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
         if (found) return found;
     }
 
-    // Look for any voice labeled with female or natural
-    const femaleVoice = availableVoices.find(v => 
-        (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("siri") || v.name.toLowerCase().includes("natural")) && 
+    // Try any British English voice (en-GB) for smooth, natural cadence
+    const ukVoice = availableVoices.find(v => v.lang === "en-GB" || v.lang.startsWith("en-GB"));
+    if (ukVoice) return ukVoice;
+
+    // Try any Indian English voice (en-IN)
+    const inVoice = availableVoices.find(v => v.lang === "en-IN" || v.lang.startsWith("en-IN"));
+    if (inVoice) return inVoice;
+
+    // Fallback to any natural English voice
+    const naturalVoice = availableVoices.find(v => 
+        (v.name.toLowerCase().includes("natural") || v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("siri")) && 
         v.lang.startsWith("en")
     );
-    if (femaleVoice) return femaleVoice;
+    if (naturalVoice) return naturalVoice;
 
-    // Fallback to US English or any English voice
-    const enVoice = availableVoices.find(v => v.lang === "en-US" || v.lang.startsWith("en"));
-    return enVoice || null;
+    return availableVoices.find(v => v.lang.startsWith("en")) || null;
 }
 
 function speakText(text) {
@@ -925,15 +947,15 @@ function speakText(text) {
         // Play gentle crisp audio chime before speaking
         playAssistantChime(false);
 
-        // Clean markdown symbols for cleaner pronunciation
-        const cleanText = text.replace(/[*_#`~\[\]]/g, '').trim();
+        // Preprocess text for natural conversational speech
+        const cleanText = cleanConversationalText(text);
         if (!cleanText) return;
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
 
-        // Siri-like Acoustic Settings: Crisp, sharp, bright & articulate
-        utterance.pitch = 1.18;  // Bright, sharp, youthful female assistant tone
-        utterance.rate = 1.04;   // Fast, brisk, responsive Siri-like pacing
+        // Natural Conversational Acoustic Settings (no robotic syllable stressing)
+        utterance.pitch = 1.0;  // Standard human pitch prevents robotic staccato distortion
+        utterance.rate = 1.0;   // Natural conversational cadence
         utterance.volume = 1.0;
 
         const voice = findBestSiriVoice();
@@ -941,7 +963,7 @@ function speakText(text) {
             utterance.voice = voice;
             utterance.lang = voice.lang;
         } else {
-            utterance.lang = 'en-US';
+            utterance.lang = 'en-GB';
         }
 
         window.speechSynthesis.speak(utterance);
