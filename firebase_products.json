@@ -1,0 +1,62 @@
+{
+  "76D1CB01": {
+    "name": "Fresh Milk",
+    "product_name": "Fresh Milk",
+    "category": "Dairy",
+    "price": 30.00,
+    "stock": 50,
+    "stock_quantity": 50,
+    "rack": "Aisle 1, Rack B",
+    "min_stock": 10,
+    "expiry_date": "2026-11-15",
+    "weight_grams": 1050
+  },
+  "231646A3": {
+    "name": "Organic Bananas",
+    "product_name": "Organic Bananas",
+    "category": "Fruits",
+    "price": 40.00,
+    "stock": 45,
+    "stock_quantity": 45,
+    "rack": "Aisle 1, Rack A",
+    "min_stock": 10,
+    "expiry_date": "2026-11-05",
+    "weight_grams": 500
+  },
+  "A36449A3": {
+    "name": "Wheat Bread",
+    "product_name": "Wheat Bread",
+    "category": "Bakery",
+    "price": 35.00,
+    "stock": 30,
+    "stock_quantity": 30,
+    "rack": "Aisle 1, Rack C",
+    "min_stock": 8,
+    "expiry_date": "2026-11-04",
+    "weight_grams": 400
+  },
+  "E3034CA3": {
+    "name": "Farm Eggs (6pk)",
+    "product_name": "Farm Eggs (6pk)",
+    "category": "Dairy",
+    "price": 45.00,
+    "stock": 25,
+    "stock_quantity": 25,
+    "rack": "Aisle 2, Rack A",
+    "min_stock": 5,
+    "expiry_date": "2026-11-20",
+    "weight_grams": 350
+  },
+  "13B60EA3": {
+    "name": "Potato Chips",
+    "product_name": "Potato Chips",
+    "category": "Snacks",
+    "price": 20.00,
+    "stock": 60,
+    "stock_quantity": 60,
+    "rack": "Aisle 3, Rack A",
+    "min_stock": 15,
+    "expiry_date": "2026-12-30",
+    "weight_grams": 120
+  }
+}

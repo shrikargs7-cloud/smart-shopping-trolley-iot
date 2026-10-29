@@ -595,14 +595,6 @@
                     </div>
                 </div>
             </div>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Minimum Stock Alert</label>
-                        <input id="minStock" type="number" min="1" placeholder="100" value="100"
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none">
-                    </div>
-                </div>
-            </div>
 
             <p id="formMessage" class="text-xs text-rose-500 mt-3 min-h-[16px] font-semibold"></p>
 
@@ -616,6 +608,69 @@
             </div>
         </form>
     </dialog>
+
+    <!-- Floating FreshCart AI Inventory Copilot -->
+    <div id="aiChatWidget" class="fixed bottom-3 sm:bottom-6 right-3 sm:right-6 z-40 flex flex-col items-end">
+        <!-- Chat Panel (hidden by default) -->
+        <div id="aiChatPanel" class="hidden mb-2 sm:mb-3 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[75vh] sm:h-[480px] max-h-[560px]">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-base">🤖</span>
+                    <div>
+                        <h4 class="font-bold text-sm">Aura Inventory Copilot</h4>
+                        <p class="text-[10px] text-emerald-100">Voice-Controlled Store Operations &amp; Stock AI</p>
+                    </div>
+                </div>
+                <button id="closeAiChatBtn" class="text-white/80 hover:text-white text-lg font-bold">×</button>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="aiChatMessages" class="flex-1 p-3 overflow-y-auto space-y-3 bg-slate-50 text-xs">
+                <div class="flex items-start space-x-2">
+                    <div class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs">🤖</div>
+                    <div class="bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-700 shadow-sm leading-relaxed">
+                        Hello! 👋 I am <strong>Aura</strong>, your AI Store Inventory Copilot. Ask me for stock levels, peak rush analytics, low-stock reorders, or export reports!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suggested Quick Copilot Actions -->
+            <div class="px-3 py-2 bg-slate-100 border-t border-slate-200 flex gap-1.5 overflow-x-auto text-[11px] whitespace-nowrap scrollbar-none">
+                <button onclick="askInventoryQuickPrompt('Which items are low on stock?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700 shrink-0">⚠️ Check Low Stock</button>
+                <button onclick="askInventoryQuickPrompt('What are our peak shopping hours?')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700 shrink-0">📊 Peak Rush Hours</button>
+                <button onclick="askInventoryQuickPrompt('Send reorder alert for low stock')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700 shrink-0">🚨 Send Reorder Alert</button>
+                <button onclick="askInventoryQuickPrompt('Export inventory to CSV')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700 shrink-0">📥 Export CSV</button>
+                <button onclick="askInventoryQuickPrompt('Add a new product')" class="bg-white hover:bg-slate-50 px-2.5 py-1 rounded-full border border-slate-300 text-slate-700 shrink-0">➕ Add Product</button>
+            </div>
+
+            <!-- Input Bar -->
+            <form id="aiChatForm" class="p-2 sm:p-2.5 bg-white border-t border-slate-200 flex gap-1.5 sm:gap-2 items-center">
+                <input id="aiChatInput" type="text" placeholder="Speak or type: 'Check low stock'..." 
+                       class="flex-1 bg-slate-100 text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                
+                <!-- Voice Input Microphone Button -->
+                <button type="button" id="aiVoiceBtn" title="Speak to Aura" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition shrink-0">
+                    <i class="fas fa-microphone"></i>
+                </button>
+
+                <!-- Voice Output Toggle (Mute/Unmute speech) -->
+                <button type="button" id="aiSpeakerToggleBtn" title="Toggle voice response" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-emerald-600 flex items-center justify-center text-xs transition shrink-0">
+                    <i class="fas fa-volume-high"></i>
+                </button>
+
+                <button type="submit" id="aiSendBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-3 py-2 text-xs font-bold transition flex items-center justify-center shrink-0">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Toggle Button -->
+        <button id="toggleAiChatBtn" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-2.5 sm:py-3 px-3.5 sm:px-4 rounded-full shadow-lg flex items-center space-x-2 transition hover:scale-105">
+            <span class="text-base sm:text-lg">🤖</span>
+            <span class="text-xs font-semibold">Talk to Aura Copilot</span>
+        </button>
+    </div>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>

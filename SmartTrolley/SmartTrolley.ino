@@ -14,8 +14,8 @@
 // WIFI AND FIREBASE CONFIGURATION
 // ==================================================
 
-#define WIFI_SSID       "OnePlus"
-#define WIFI_PASSWORD   "12345678"
+#define WIFI_SSID       "chaaru"
+#define WIFI_PASSWORD   "123456789"
 
 #define API_KEY         "AIzaSyBdId6Lqg-zc5o0dTzrArcgS0-6lC5VFD8"
 #define USER_EMAIL      "shrikargs7@gmail.com"
@@ -132,7 +132,7 @@ void productLookupCallback(AsyncResult &result) {
     );
   }
 
-  if (result.isError()) {
+  if (result.error().code() != 0) {
     Serial.printf(
       "Firebase error: %s, code: %d\n",
       result.error().message().c_str(),
@@ -183,10 +183,10 @@ void productLookupCallback(AsyncResult &result) {
     return;
   }
 
-  String name = doc["name"] | "Unnamed";
+  String name = doc["name"] | doc["product_name"] | "Unnamed";
   String category = doc["category"] | "Unassigned";
   double price = doc["price"] | 0.0;
-  int stock = doc["stock_quantity"] | 0;
+  int stock = doc["stock_quantity"] | doc["stock"] | 0;
   String expiry = doc["expiry_date"] | "Not set";
 
   Serial.println("Product found.");
@@ -209,8 +209,7 @@ void productLookupCallback(AsyncResult &result) {
   String historyJson;
   serializeJson(history, historyJson);
 
-  String historyPath =
-    "/scan_history/";
+  String historyPath = "/scan_history/";
 
   Database.set<object_t>(
     aClient,
@@ -264,7 +263,12 @@ void scanRFID() {
     return;
   }
 
-  if (!rfid.PICC_IsNewCardPresent()) {
+  // Robust card wake-up (crucial for clone RC522 0x82 chips)
+  byte bufferATQA[2];
+  byte bufferSize = sizeof(bufferATQA);
+  MFRC522::StatusCode status = rfid.PICC_WakeupA(bufferATQA, &bufferSize);
+
+  if (status != MFRC522::STATUS_OK && !rfid.PICC_IsNewCardPresent()) {
     cardProcessed = false;
     return;
   }
@@ -340,6 +344,13 @@ void setup() {
 
   showLCD("RFID Inventory", "Starting...");
 
+  // RFID hardware reset pulse
+  pinMode(RFID_RST_PIN, OUTPUT);
+  digitalWrite(RFID_RST_PIN, LOW);
+  delay(50);
+  digitalWrite(RFID_RST_PIN, HIGH);
+  delay(50);
+
   // RFID initialization
   SPI.begin(
     SPI_SCK,
@@ -350,6 +361,15 @@ void setup() {
 
   rfid.PCD_Init();
   delay(100);
+
+  // Set maximum antenna gain and force RF field active
+  rfid.PCD_SetAntennaGain(MFRC522::RxGain_max);
+  rfid.PCD_AntennaOn();
+
+  byte txControl = rfid.PCD_ReadRegister(MFRC522::TxControlReg);
+  if ((txControl & 0x03) != 0x03) {
+    rfid.PCD_WriteRegister(MFRC522::TxControlReg, 0x83);
+  }
 
   byte version = rfid.PCD_ReadRegister(
     MFRC522::VersionReg

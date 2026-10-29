@@ -956,9 +956,465 @@ auth.signInWithEmailAndPassword("shrikargs7@gmail.com", "Shri@1234")
 
 document.addEventListener("DOMContentLoaded", () => {
     setupEventListeners();
+    setupInventoryAiChat();
     renderTable();
     setTimeout(() => {
         initPopularItemsChart();
         initPeakHoursChart();
     }, 400);
 });
+
+// =========================================================================
+// 9. Aura Inventory Copilot: Voice & Action-Driven Store AI
+// =========================================================================
+let speechEnabled = true;
+let isRecognizing = false;
+let recognition = null;
+let welcomeSpoken = false;
+let availableVoices = [];
+
+function loadVoices() {
+    if (!('speechSynthesis' in window)) return;
+    availableVoices = window.speechSynthesis.getVoices();
+}
+
+if ('speechSynthesis' in window) {
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function findBestSiriVoice() {
+    if (!availableVoices || availableVoices.length === 0) {
+        loadVoices();
+    }
+
+    const siriPreferredNames = [
+        "Samantha", "Siri", "Victoria", "Karen", "Moira",
+        "Google US English", "Microsoft Jenny Online (Natural)",
+        "Microsoft Aria Online (Natural)", "Microsoft Zira", "Ava", "Allison"
+    ];
+
+    for (const name of siriPreferredNames) {
+        const found = availableVoices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+        if (found) return found;
+    }
+
+    const femaleVoice = availableVoices.find(v => 
+        (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("siri") || v.name.toLowerCase().includes("natural")) && 
+        v.lang.startsWith("en")
+    );
+    if (femaleVoice) return femaleVoice;
+
+    return availableVoices.find(v => v.lang === "en-US" || v.lang.startsWith("en")) || null;
+}
+
+function playAssistantChime(isStartMic = false) {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        if (isStartMic) {
+            const notes = [440.0, 554.37];
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                gain.gain.setValueAtTime(0.05, now + idx * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.2);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now + idx * 0.08);
+                osc.stop(now + idx * 0.08 + 0.2);
+            });
+        } else {
+            const notes = [523.25, 783.99];
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+                gain.gain.setValueAtTime(0.06, now + idx * 0.12);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.12 + 0.35);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now + idx * 0.12);
+                osc.stop(now + idx * 0.12 + 0.35);
+            });
+        }
+    } catch (_) {}
+}
+
+function speakText(text) {
+    if (!speechEnabled || !('speechSynthesis' in window)) return;
+    try {
+        window.speechSynthesis.cancel();
+        playAssistantChime(false);
+
+        const cleanText = text.replace(/[*_#`~\[\]]/g, '').trim();
+        if (!cleanText) return;
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.pitch = 1.18;  // Siri-like crisp female tone
+        utterance.rate = 1.04;   // Fast, articulate pacing
+        utterance.volume = 1.0;
+
+        const voice = findBestSiriVoice();
+        if (voice) {
+            utterance.voice = voice;
+            utterance.lang = voice.lang;
+        } else {
+            utterance.lang = 'en-US';
+        }
+
+        window.speechSynthesis.speak(utterance);
+    } catch (err) {
+        console.warn("Speech synthesis error:", err);
+    }
+}
+
+function askInventoryQuickPrompt(question) {
+    const input = $("aiChatInput");
+    if (input) input.value = question;
+    askInventoryGeminiAssistant(question);
+    if (input) input.value = "";
+}
+
+async function askInventoryGeminiAssistant(userQuestion) {
+    const messagesContainer = $("aiChatMessages");
+    if (!messagesContainer || !userQuestion.trim()) return;
+
+    // Append user message
+    const userDiv = document.createElement("div");
+    userDiv.className = "flex items-start justify-end space-x-2";
+    userDiv.innerHTML = `
+        <div class="bg-emerald-600 text-white p-2.5 rounded-2xl rounded-tr-none shadow-sm max-w-[80%] leading-relaxed text-xs">
+            ${escapeHTML(userQuestion)}
+        </div>
+    `;
+    messagesContainer.appendChild(userDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Append loading placeholder
+    const botDiv = document.createElement("div");
+    botDiv.className = "flex items-start space-x-2";
+    const placeholderId = "aiLoading_" + Date.now();
+    botDiv.innerHTML = `
+        <div class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs">🤖</div>
+        <div id="${placeholderId}" class="bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-500 shadow-sm leading-relaxed text-xs">
+            <i class="fas fa-spinner fa-spin mr-1 text-emerald-600"></i> Aura Copilot is analyzing inventory...
+        </div>
+    `;
+    messagesContainer.appendChild(botDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Direct local intent execution for immediate speed
+    const executedLocally = checkAndExecuteInventoryDirectIntent(userQuestion);
+
+    // Prepare catalog summary
+    const all = getProcessedProducts();
+    const catalogSummary = all.map(p => {
+        return `- ${p.name} (UID: ${p.uid}): Category [${p.category}], Stock [${p.stock} units], Price [₹${p.price}], Location [${p.rack}], Status [${p.statusLabel}]`;
+    }).join("\n");
+
+    try {
+        let rawReply = "";
+        try {
+            const apiRes = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    question: userQuestion,
+                    catalog: catalogSummary,
+                    role: "admin",
+                    mode: "inventory"
+                })
+            });
+            if (apiRes.ok) {
+                const apiData = await apiRes.json();
+                rawReply = apiData.reply;
+            }
+        } catch (_) {}
+
+        if (!rawReply && !executedLocally) {
+            rawReply = "I have reviewed your inventory metrics. All records are updated and synced with live RFID events.";
+        }
+
+        // Parse action
+        const actionMatch = rawReply.match(/\[ACTION:\s*({[\s\S]*?})\]/i);
+        let speechText = rawReply;
+        if (actionMatch) {
+            try {
+                const actionData = JSON.parse(actionMatch[1]);
+                speechText = rawReply.replace(actionMatch[0], "").trim();
+                executeInventoryAction(actionData);
+            } catch (e) {
+                console.warn("Inventory action parse error:", e);
+            }
+        }
+
+        const el = document.getElementById(placeholderId);
+        if (el) {
+            el.className = "bg-white p-2.5 rounded-2xl rounded-tl-none border border-slate-200 text-slate-800 shadow-sm leading-relaxed text-xs";
+            el.innerHTML = speechText.replace(/\n/g, '<br>');
+        }
+
+        if (!executedLocally && speechText) {
+            speakText(speechText);
+        }
+    } catch (err) {
+        console.error("Inventory Copilot API error:", err);
+        const el = document.getElementById(placeholderId);
+        if (el) {
+            el.innerHTML = "I apologize, I experienced a brief connection hiccup. Please ask again.";
+        }
+    }
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function checkAndExecuteInventoryDirectIntent(phrase) {
+    const text = phrase.toLowerCase().trim();
+
+    // 1. FILTER TO LOW STOCK
+    if (/low\s*stock|need\s*reorder|below\s*threshold/i.test(text)) {
+        executeInventoryAction({ action: "FILTER", filter: "low_stock" });
+        speakText("Filtering product table to show low stock items requiring attention.");
+        return true;
+    }
+
+    // 2. FILTER TO OUT OF STOCK
+    if (/out\s*of\s*stock|empty\s*stock|zero\s*units/i.test(text)) {
+        executeInventoryAction({ action: "FILTER", filter: "out_of_stock" });
+        speakText("Filtering product table to show completely out-of-stock products.");
+        return true;
+    }
+
+    // 3. SHOW ALL
+    if (/all\s*products|reset\s*filter|show\s*all/i.test(text)) {
+        executeInventoryAction({ action: "FILTER", filter: "all" });
+        speakText("Displaying all inventory products.");
+        return true;
+    }
+
+    // 4. ADD PRODUCT
+    if (/add.*product|new.*product|create.*item/i.test(text)) {
+        openAddDialog();
+        speakText("Opening the product creation form.");
+        return true;
+    }
+
+    // 5. EXPORT CSV
+    if (/export|download.*csv|report/i.test(text)) {
+        exportToCSV();
+        speakText("Generating and downloading your full inventory CSV report.");
+        return true;
+    }
+
+    // 6. TRIGGER REORDER ALERT
+    if (/send.*reorder|dispatch.*alert|notify.*supplier/i.test(text)) {
+        triggerLowStockReorderEmail(false);
+        speakText("Dispatching low-stock auto-reorder requisition alert to the store manager.");
+        return true;
+    }
+
+    // 7. RUSH / PEAK HOURS
+    if (/rush|peak.*hour|traffic|busy/i.test(text)) {
+        executeInventoryAction({ action: "SCROLL_TO", target: "analytics" });
+        speakText("Navigating to store rush hours. Peak traffic is typically between 5 PM and 8 PM.");
+        return true;
+    }
+
+    // 8. RFID SCANS
+    if (/rfid|scan.*history|activity/i.test(text)) {
+        executeInventoryAction({ action: "SCROLL_TO", target: "activity" });
+        speakText("Showing real-time RFID scan stream from smart trolleys.");
+        return true;
+    }
+
+    return false;
+}
+
+function executeInventoryAction(actionObj) {
+    if (!actionObj || !actionObj.action) return;
+    const act = actionObj.action.toUpperCase();
+
+    switch (act) {
+        case "FILTER": {
+            const f = (actionObj.filter || "all").toLowerCase();
+            currentStatusFilter = f;
+            currentPage = 1;
+            document.querySelectorAll(".status-tab").forEach(t => {
+                if (t.dataset.filter === f) {
+                    t.className = "status-tab active px-3.5 py-1.5 rounded-full font-bold transition border";
+                } else {
+                    t.className = "status-tab px-3.5 py-1.5 rounded-full font-semibold transition border border-transparent text-slate-500 hover:text-slate-800";
+                }
+            });
+            renderTable();
+            break;
+        }
+
+        case "SEARCH": {
+            const q = actionObj.query || "";
+            const searchInput = $("searchInput");
+            if (searchInput) searchInput.value = q;
+            searchQuery = q.toLowerCase();
+            currentPage = 1;
+            renderTable();
+            break;
+        }
+
+        case "OPEN_ADD_PRODUCT": {
+            openAddDialog();
+            break;
+        }
+
+        case "EXPORT_CSV": {
+            exportToCSV();
+            break;
+        }
+
+        case "TRIGGER_REORDER": {
+            triggerLowStockReorderEmail(false);
+            break;
+        }
+
+        case "SCROLL_TO": {
+            const target = (actionObj.target || "").toLowerCase();
+            if (target.includes("analytic") || target.includes("rush") || target.includes("hour")) {
+                $("analytics")?.scrollIntoView({ behavior: "smooth" });
+            } else if (target.includes("reorder") || target.includes("alert")) {
+                $("reorder")?.scrollIntoView({ behavior: "smooth" });
+            } else if (target.includes("activity") || target.includes("rfid") || target.includes("scan")) {
+                $("activity")?.scrollIntoView({ behavior: "smooth" });
+            } else {
+                $("productsBody")?.scrollIntoView({ behavior: "smooth" });
+            }
+            break;
+        }
+    }
+}
+
+function toggleVoiceRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Speech Recognition is not supported by your browser. Please use Google Chrome or Safari.");
+        return;
+    }
+
+    const voiceBtn = $("aiVoiceBtn");
+
+    if (isRecognizing && recognition) {
+        recognition.stop();
+        isRecognizing = false;
+        if (voiceBtn) {
+            voiceBtn.className = "w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition shrink-0";
+        }
+        return;
+    }
+
+    try {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+            isRecognizing = true;
+            playAssistantChime(true);
+            if (voiceBtn) {
+                voiceBtn.className = "w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center text-xs transition animate-pulse shrink-0";
+            }
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            console.log("Voice transcript heard:", transcript);
+            const input = $("aiChatInput");
+            if (input) input.value = transcript;
+            askInventoryGeminiAssistant(transcript);
+            if (input) input.value = "";
+        };
+
+        recognition.onerror = (event) => {
+            console.warn("Speech recognition error:", event.error);
+            isRecognizing = false;
+            if (voiceBtn) {
+                voiceBtn.className = "w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition shrink-0";
+            }
+        };
+
+        recognition.onend = () => {
+            isRecognizing = false;
+            if (voiceBtn) {
+                voiceBtn.className = "w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition shrink-0";
+            }
+        };
+
+        recognition.start();
+    } catch (e) {
+        console.error("Speech recognition start failed:", e);
+    }
+}
+
+function setupInventoryAiChat() {
+    const toggleBtn = $("toggleAiChatBtn");
+    const closeBtn = $("closeAiChatBtn");
+    const panel = $("aiChatPanel");
+    const form = $("aiChatForm");
+    const input = $("aiChatInput");
+    const voiceBtn = $("aiVoiceBtn");
+    const speakerBtn = $("aiSpeakerToggleBtn");
+
+    if (toggleBtn && panel) {
+        toggleBtn.addEventListener("click", () => {
+            panel.classList.toggle("hidden");
+            if (!panel.classList.contains("hidden")) {
+                input?.focus();
+                if (!welcomeSpoken) {
+                    welcomeSpoken = true;
+                    speakText("Welcome to FreshCart Inventory. I am Aura, your AI Store Copilot. Ask me for stock levels, analytics, or store operations.");
+                }
+            }
+        });
+    }
+
+    if (closeBtn && panel) {
+        closeBtn.addEventListener("click", () => {
+            panel.classList.add("hidden");
+        });
+    }
+
+    if (form) {
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const text = input?.value || "";
+            if (text.trim()) {
+                askInventoryGeminiAssistant(text.trim());
+                input.value = "";
+            }
+        });
+    }
+
+    if (voiceBtn) {
+        voiceBtn.addEventListener("click", toggleVoiceRecognition);
+    }
+
+    if (speakerBtn) {
+        speakerBtn.addEventListener("click", () => {
+            speechEnabled = !speechEnabled;
+            if (speechEnabled) {
+                speakerBtn.className = "w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-emerald-600 flex items-center justify-center text-xs transition shrink-0";
+                speakerBtn.innerHTML = '<i class="fas fa-volume-high"></i>';
+                speakerBtn.title = "Text-to-speech enabled";
+            } else {
+                speakerBtn.className = "w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-400 flex items-center justify-center text-xs transition shrink-0";
+                speakerBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
+                speakerBtn.title = "Text-to-speech muted";
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        });
+    }
+}
