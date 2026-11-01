@@ -114,8 +114,10 @@ function normalizeProduct(uid, p) {
 }
 
 function getProcessedProducts() {
-    const merged = { ...SAMPLE_PRODUCTS, ...products };
-    return Object.entries(merged).map(([uid, p]) => normalizeProduct(uid, p));
+    // If real products are loaded from Firebase, prioritize them
+    const hasRealProducts = Object.keys(products).length > 0;
+    const source = hasRealProducts ? products : SAMPLE_PRODUCTS;
+    return Object.entries(source).map(([uid, p]) => normalizeProduct(uid, p));
 }
 
 function updateKPIs(items) {
@@ -123,10 +125,19 @@ function updateKPIs(items) {
     const low = items.filter(p => p.status === "low_stock").length;
     const out = items.filter(p => p.status === "out_of_stock").length;
 
-    if ($("totalProducts")) $("totalProducts").textContent = total > 1000 ? total.toLocaleString() : "1,247";
-    if ($("lowStock")) $("lowStock").textContent = low || "34";
-    if ($("outOfStock")) $("outOfStock").textContent = out || "12";
-    if ($("topCategoryValue")) $("topCategoryValue").textContent = "231";
+    // Calculate top category dynamically from current products
+    const categoryCounts = {};
+    items.forEach(p => {
+        categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
+    });
+    const topCatCount = Object.values(categoryCounts).length > 0 
+        ? Math.max(...Object.values(categoryCounts)) 
+        : 0;
+
+    if ($("totalProducts")) $("totalProducts").textContent = total.toLocaleString();
+    if ($("lowStock")) $("lowStock").textContent = low;
+    if ($("outOfStock")) $("outOfStock").textContent = out;
+    if ($("topCategoryValue")) $("topCategoryValue").textContent = topCatCount || items.length;
 }
 
 // -------------------------------------------------------------------------

@@ -402,14 +402,17 @@ async function processCheckout() {
             const prod = await getRes.json();
 
             if (prod) {
-                const stockField = prod.stock_quantity !== undefined ? "stock_quantity" : "stock";
-                const currentStock = Number(prod[stockField] || 0);
+                const currentStock = Number(prod.stock_quantity ?? prod.stock ?? 0);
                 const updatedStock = Math.max(0, currentStock - item.quantity);
 
-                await fetch(`${CONFIG.dbUrl}/products/${item.uid}/${stockField}.json?auth=${idToken}`, {
-                    method: "PUT",
+                // Atomically update both stock and stock_quantity fields
+                await fetch(`${CONFIG.dbUrl}/products/${item.uid}.json?auth=${idToken}`, {
+                    method: "PATCH",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(updatedStock)
+                    body: JSON.stringify({
+                        stock: updatedStock,
+                        stock_quantity: updatedStock
+                    })
                 });
             }
         }
@@ -426,6 +429,22 @@ async function processCheckout() {
                 items: cart
             })
         });
+
+        // Also record scan_history checkout/removal event so RFID scan activity updates in real-time
+        for (const item of items) {
+            await fetch(`${CONFIG.dbUrl}/scan_history.json?auth=${idToken}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    uid: item.uid,
+                    name: item.name,
+                    price: item.price,
+                    event: "CHECKOUT_PAID",
+                    receipt_id: receiptId,
+                    timestamp: Date.now()
+                })
+            });
+        }
 
         $("receiptNumber").textContent = `#${receiptId}`;
         $("receiptDate").textContent = new Date().toLocaleString("en-IN");

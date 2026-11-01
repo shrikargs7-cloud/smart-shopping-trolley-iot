@@ -14,8 +14,8 @@
 // WIFI AND FIREBASE CONFIGURATION
 // ==================================================
 
-#define WIFI_SSID       "chaaru"
-#define WIFI_PASSWORD   "123456789"
+#define WIFI_SSID       "OnePlus"
+#define WIFI_PASSWORD   "12345678"
 
 #define API_KEY         "AIzaSyBdId6Lqg-zc5o0dTzrArcgS0-6lC5VFD8"
 #define USER_EMAIL      "shrikargs7@gmail.com"
