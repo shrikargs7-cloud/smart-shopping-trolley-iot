@@ -28,6 +28,12 @@
             </div>
 
             <div class="flex items-center space-x-2 sm:space-x-3 ml-auto sm:ml-0">
+                <!-- User ID Badge / Switch User -->
+                <button id="userSessionBtn" title="Current Shopping User" class="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/20 transition shrink-0">
+                    <i class="fas fa-user-circle text-xs text-blue-200"></i>
+                    <span id="userSessionName">User: Loading...</span>
+                </button>
+
                 <!-- Hands-free "Hey Aura" Wake-Word Indicator / Toggle -->
                 <button id="wakeWordToggleBtn" title="Toggle 'Hey Aura' wake-word detection" class="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/20 transition shrink-0">
                     <span id="wakeWordDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -46,6 +52,26 @@
             </div>
         </div>
     </header>
+
+    <!-- Security & Anti-Theft Alert Banner (Hidden by default, flashes on weight mismatch / post-pay scan) -->
+    <div id="securityAlertBanner" class="hidden bg-rose-600 text-white px-4 py-3 shadow-lg border-b-2 border-rose-800 transition-all">
+        <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <span class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-lg animate-bounce">🚨</span>
+                <div>
+                    <h4 class="font-black text-sm tracking-wide uppercase flex items-center gap-1.5">
+                        <span id="securityAlertTitle">Security Alert: Weight Mismatch Detected</span>
+                    </h4>
+                    <p id="securityAlertDesc" class="text-xs text-rose-100 mt-0.5">
+                        An unscanned item was placed in the cart or weights do not tally. Please scan all items or remove unscanned items.
+                    </p>
+                </div>
+            </div>
+            <button id="dismissSecurityAlertBtn" onclick="dismissSecurityBanner()" class="text-xs font-bold bg-white text-rose-700 px-3 py-1.5 rounded-lg hover:bg-rose-50 transition shrink-0">
+                Dismiss
+            </button>
+        </div>
+    </div>
 
     <!-- Main Content Container -->
     <main class="max-w-6xl mx-auto w-full p-3 sm:p-4 md:p-6 flex-1 flex flex-col lg:flex-row gap-4 sm:gap-6">
@@ -84,6 +110,31 @@
 
         <!-- Right Column: Bill Summary & Checkout -->
         <aside class="w-full lg:w-96 flex flex-col gap-6">
+
+            <!-- Live Weight & Anti-Theft Verification Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                        <i class="fas fa-scale-balanced text-emerald-600"></i>
+                        <span>5kg Load Sensor Verification</span>
+                    </span>
+                    <span id="weightStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                        MATCHED
+                    </span>
+                </div>
+                <div class="flex items-baseline justify-between text-xs mb-2">
+                    <span class="text-slate-500">Cart Scale Weight:</span>
+                    <span class="font-extrabold text-slate-800"><span id="cartActualWeight">0g</span> / <span id="cartExpectedWeight" class="text-slate-500">0g expected</span></span>
+                </div>
+                <!-- Weight Delta Bar -->
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+                    <div id="weightProgressBar" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 100%"></div>
+                </div>
+                <div id="weightAlertMsg" class="text-[11px] mt-2 font-medium text-emerald-600 flex items-center gap-1">
+                    <i class="fas fa-shield-check"></i>
+                    <span>Trolley weight matches scanned items list</span>
+                </div>
+            </div>
 
             <!-- Budget Tracker Card -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col">
@@ -308,7 +359,34 @@
         </div>
     </dialog>
 
+    <!-- User Login / Customer ID Setup Modal -->
+    <dialog id="userLoginModal" class="rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60 max-w-sm w-[calc(100vw-2rem)] sm:w-full mx-auto my-auto">
+        <form id="userLoginForm" class="bg-white p-6 rounded-2xl">
+            <div class="w-14 h-14 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto text-2xl mb-3">
+                <i class="fas fa-user-tag"></i>
+            </div>
+            <h3 class="text-center text-xl font-bold text-slate-900">Customer Trolley Login</h3>
+            <p class="text-center text-xs text-slate-500 mt-1 mb-5">
+                Each shopper gets an individual User ID so only your scanned items appear in your cart.
+            </p>
+
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Enter Your Name or User ID:</label>
+            <input id="userIdInput" type="text" required placeholder="e.g. USER-101 or Rahul"
+                   class="w-full px-3.5 py-2.5 text-sm font-bold bg-slate-50 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 mb-3">
+
+            <div class="flex gap-2 mb-4">
+                <button type="button" onclick="quickSelectUser('USER-101')" class="flex-1 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700">USER-101</button>
+                <button type="button" onclick="quickSelectUser('USER-102')" class="flex-1 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700">USER-102</button>
+                <button type="button" onclick="quickSelectUser('USER-103')" class="flex-1 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700">USER-103</button>
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-md">
+                Start Shopping Session
+            </button>
+        </form>
+    </dialog>
+
     <script src="config.local.js"></script>
-    <script src="customer.js?v=8"></script>
+    <script src="customer.js?v=9"></script>
 </body>
 </html>

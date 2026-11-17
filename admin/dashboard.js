@@ -9,8 +9,10 @@ const CRITICAL_REORDER_THRESHOLD = 5;
 const productsRef = database.ref("products");
 const scansRef = database.ref("scan_history");
 const transactionsRef = database.ref("transactions");
+const activeSessionsRef = database.ref("active_sessions");
 
 let products = {};
+let activeSessions = {};
 let currentStatusFilter = "all";
 let searchQuery = "";
 let currentPage = 1;
@@ -954,6 +956,139 @@ transactionsRef.orderByChild("timestamp").limitToLast(50).on("value", snapshot =
         allTransactions.push({ key: child.key, ...child.val() });
     });
     initPeakHoursChart();
+});
+
+function clearTrolleyAlert(trolleyId) {
+    if (!trolleyId) return;
+    database.ref(`active_sessions/${trolleyId}/security_alert`).remove()
+        .then(() => {
+            console.log(`Alert cleared for ${trolleyId}`);
+        })
+        .catch(err => console.error("Error clearing alert:", err));
+}
+window.clearTrolleyAlert = clearTrolleyAlert;
+
+function renderActiveTrolleys(sessions) {
+    const grid = $("activeTrolleysGrid");
+    const banner = $("adminTheftAlertBanner");
+    const bannerTitle = $("adminTheftTitle");
+    const bannerDesc = $("adminTheftDesc");
+    const fleetBadge = $("fleetSecurityStatusBadge");
+
+    if (!sessions || Object.keys(sessions).length === 0) {
+        sessions = {
+            "TRL-01": {
+                user_id: "USER-101",
+                status: "ACTIVE",
+                paid: false,
+                items_count: 0,
+                expected_weight_grams: 0,
+                actual_weight_grams: 0
+            }
+        };
+    }
+
+    let hasAnyAlert = false;
+    let alertDetails = null;
+
+    const cardsHtml = Object.entries(sessions).map(([trolleyId, session]) => {
+        const userId = session.user_id || "Unassigned";
+        const isPaid = session.status === "PAID" || session.paid === true;
+        const alert = session.security_alert;
+        const actualWt = Number(session.actual_weight_grams || 0);
+        const expectedWt = Number(session.expected_weight_grams || 0);
+        const weightDelta = Math.abs(actualWt - expectedWt);
+        const isWeightMismatch = alert?.alert || (weightDelta > 35 && (expectedWt > 0 || actualWt > 20));
+
+        if (isWeightMismatch || alert?.alert) {
+            hasAnyAlert = true;
+            alertDetails = {
+                trolleyId,
+                title: alert?.title || `Theft Alert: ${trolleyId} Weight Mismatch`,
+                message: alert?.message || `Cart scale (${actualWt}g) deviates from scanned items list (${expectedWt}g) by ${weightDelta}g!`
+            };
+        }
+
+        let statusBadge = "";
+        let statusBorder = "border-slate-200/80";
+        if (alert?.alert || isWeightMismatch) {
+            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 animate-pulse border border-rose-300">🚨 THEFT ALERT</span>`;
+            statusBorder = "border-rose-400 bg-rose-50/20";
+        } else if (isPaid) {
+            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">✅ PAID & CHECKED OUT</span>`;
+        } else {
+            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">🛒 ACTIVE SHOPPING</span>`;
+        }
+
+        return `
+            <div class="bg-white rounded-xl border ${statusBorder} p-4 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                <div>
+                    <div class="flex items-center justify-between mb-2.5">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-black text-xs">
+                                🛒
+                            </span>
+                            <div>
+                                <h4 class="font-extrabold text-slate-900 text-sm">${trolleyId}</h4>
+                                <p class="text-[10px] font-mono text-slate-400">Shopper: <span class="font-bold text-slate-700">${escapeHTML(userId)}</span></p>
+                            </div>
+                        </div>
+                        ${statusBadge}
+                    </div>
+
+                    <div class="bg-slate-50 rounded-lg p-2.5 border border-slate-100 mb-3 space-y-1.5 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Cart Scanned Items:</span>
+                            <span class="font-bold text-slate-800">${session.items_count || (session.scanned_uids ? session.scanned_uids.length : 0)} items</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Load Sensor (5kg):</span>
+                            <span class="font-bold ${isWeightMismatch ? 'text-rose-600 font-black' : 'text-slate-800'}">
+                                ${actualWt}g <span class="text-[10px] text-slate-400 font-normal">/ ${expectedWt}g exp</span>
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                            <div class="${isWeightMismatch ? 'bg-rose-500' : 'bg-emerald-500'} h-1.5 rounded-full transition-all duration-300" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                    <span>${session.last_updated ? new Date(session.last_updated).toLocaleTimeString("en-IN") : "Real-time sync"}</span>
+                    ${alert?.alert ? `
+                        <button onclick="clearTrolleyAlert('${trolleyId}')" class="text-rose-600 font-bold hover:underline">
+                            Clear Alert
+                        </button>
+                    ` : `
+                        <span class="text-emerald-600 font-medium">Sensor calibrated</span>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join("");
+
+    if (grid) grid.innerHTML = cardsHtml;
+
+    if (hasAnyAlert && alertDetails) {
+        if (banner) banner.classList.remove("hidden");
+        if (bannerTitle) bannerTitle.textContent = alertDetails.title;
+        if (bannerDesc) bannerDesc.textContent = alertDetails.message;
+        if (fleetBadge) {
+            fleetBadge.className = "text-[11px] font-bold px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-300 flex items-center space-x-1.5 animate-pulse";
+            fleetBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>Security Warning Active</span>`;
+        }
+    } else {
+        if (banner) banner.classList.add("hidden");
+        if (fleetBadge) {
+            fleetBadge.className = "text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center space-x-1.5";
+            fleetBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>All Trolleys Secure</span>`;
+        }
+    }
+}
+
+activeSessionsRef.on("value", snapshot => {
+    activeSessions = snapshot.val() || {};
+    renderActiveTrolleys(activeSessions);
 });
 
 // Authenticate Admin with Firebase

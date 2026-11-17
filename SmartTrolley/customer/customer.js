@@ -13,7 +13,7 @@ const CONFIG = {
 
 let idToken = null;
 let allProducts = {};
-let cart = {}; // { [uid]: { uid, name, price, quantity, maxStock } }
+let cart = {}; // { [uid]: { uid, name, price, quantity, maxStock, weight_grams } }
 let lastSeenScan = null; // Store stringified scan object to detect change
 let shoppingBudget = Number(localStorage.getItem("trolley_budget") || 500);
 let alertedMilestones = { 50: false, 90: false, 100: false };
@@ -24,6 +24,12 @@ let wakeWordRecognizer = null;
 let wakeWordEnabled = true;
 let isAwake = false;
 let lastRecipeCheckCartHash = "";
+
+// Per-User & Anti-Theft Session State
+let currentUserId = localStorage.getItem("trolley_user_id") || "USER-101";
+let sessionPaid = false;
+let currentCartActualWeight = 0;
+let lastSecurityAlertState = false;
 
 const $ = id => document.getElementById(id);
 
@@ -105,6 +111,64 @@ async function loadProducts() {
     }
 }
 
+// Synchronize active session (cart items, expected weight, user_id) to Firebase
+async function syncActiveSessionToFirebase() {
+    if (!idToken) return;
+    try {
+        const expectedWeight = getExpectedCartWeight();
+        await fetch(`${CONFIG.dbUrl}/active_sessions/TRL-01.json?auth=${idToken}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: currentUserId,
+                status: sessionPaid ? "PAID" : "ACTIVE",
+                paid: sessionPaid,
+                items_count: Object.keys(cart).length,
+                scanned_uids: Object.keys(cart),
+                expected_weight_grams: expectedWeight,
+                last_updated: Date.now()
+            })
+        });
+    } catch (err) {
+        console.warn("Session sync notice:", err);
+    }
+}
+
+// Listen to ESP32 Load Cell weight and security alerts from Firebase
+async function pollActiveSessionFeedback() {
+    if (!idToken) return;
+    try {
+        const res = await fetch(`${CONFIG.dbUrl}/active_sessions/TRL-01.json?auth=${idToken}`);
+        const session = await res.json();
+        if (!session) return;
+
+        // Verify session matches current user
+        if (session.user_id && session.user_id !== currentUserId) {
+            // New user has taken over the cart on the ESP32
+            currentUserId = session.user_id;
+            updateUserDisplay();
+        }
+
+        // Live weight reading from ESP32 load sensor
+        if (session.actual_weight_grams !== undefined) {
+            updateLoadSensorVerification(session.actual_weight_grams);
+        }
+
+        // Security alert triggered by ESP32 load sensor or lockouts
+        if (session.security_alert && session.security_alert.alert) {
+            if (!lastSecurityAlertState) {
+                lastSecurityAlertState = true;
+                triggerSecurityAlert(
+                    session.security_alert.title || "Theft Alert: Weight Mismatch",
+                    session.security_alert.message || "Trolley load cell detected an unscanned item!"
+                );
+            }
+        } else {
+            lastSecurityAlertState = false;
+        }
+    } catch (_) {}
+}
+
 // -------------------------------------------------------------------------
 // 3. Poll /scan_history (Handles BOTH single object AND list of pushes)
 // -------------------------------------------------------------------------
@@ -140,6 +204,11 @@ async function pollScanHistory() {
 
         if (!currentScan || !currentScan.uid) return;
 
+        // Check if scan belongs to this user session (if user_id tagged)
+        if (currentScan.user_id && currentScan.user_id !== currentUserId) {
+            return; // Ignore scan belonging to another user
+        }
+
         // First poll: Just memorize current state so we don't scan on page load
         if (lastSeenScan === null) {
             lastSeenScan = scanId;
@@ -166,55 +235,90 @@ function addItemToCart(rawUid, fallbackName, fallbackPrice) {
     const uid = String(rawUid || "").replace(/[\s:-]/g, "").toUpperCase();
     if (!uid) return;
 
+    // Security Check: If session has been checked out and paid, lock cart!
+    if (sessionPaid) {
+        triggerSecurityAlert(
+            "Scan Blocked: Cart Already Paid",
+            "Payment has already been processed for this session. Scanning new items is locked!"
+        );
+        speakText("Warning: Payment is already completed. New items cannot be scanned.");
+        return;
+    }
+
     const product = allProducts[uid];
     const name = product?.name || fallbackName || `Item (${uid})`;
     const price = Number(product?.price ?? fallbackPrice ?? 0);
     const stock = Number(product?.stock_quantity ?? product?.stock ?? 99);
+    const weight = Number(product?.weight_grams ?? product?.weight ?? 250);
 
+    // Single-Scan Rule: One physical ID tag should only scan ONCE per customer cart
     if (cart[uid]) {
-        if (cart[uid].quantity >= stock) {
-            alert(`Cannot add more "${name}". Only ${stock} units available in stock!`);
-            return;
-        }
-        cart[uid].quantity += 1;
-    } else {
-        cart[uid] = {
-            uid,
-            name,
-            price,
-            quantity: 1,
-            maxStock: stock
-        };
+        console.warn(`Tag ${uid} already scanned in this cart session.`);
+        triggerSecurityAlert(
+            "Item Already Scanned",
+            `"${name}" (${uid}) is already scanned in your cart. Each item ID can only be scanned once!`
+        );
+        speakText(`Notice: ${name} has already been scanned in your basket.`);
+        return;
     }
 
+    // New unique item added to cart
+    cart[uid] = {
+        uid,
+        name,
+        price,
+        quantity: 1,
+        maxStock: stock,
+        weight_grams: weight
+    };
+
+    speakText(`Added ${name} to your cart.`);
     renderCart();
+    syncActiveSessionToFirebase();
 }
 
 function changeQuantity(uid, delta) {
     if (!cart[uid]) return;
 
+    if (sessionPaid) {
+        alert("Cart is already paid. Modifications locked.");
+        return;
+    }
+
+    // Since each physical item has a unique tag ID, increasing qty of the same UID is restricted
+    if (delta > 0) {
+        alert("Single Tag Mode: Each individual item has a unique RFID tag. Please scan another tag to add another unit!");
+        return;
+    }
+
     const nextQty = cart[uid].quantity + delta;
     if (nextQty <= 0) {
         delete cart[uid];
-    } else if (nextQty > cart[uid].maxStock) {
-        alert(`Only ${cart[uid].maxStock} units available in store!`);
-        return;
-    } else {
-        cart[uid].quantity = nextQty;
     }
     renderCart();
+    syncActiveSessionToFirebase();
 }
 
 function removeItem(uid) {
     if (cart[uid]) {
+        if (sessionPaid) {
+            alert("Cart is already paid. Modifications locked.");
+            return;
+        }
         delete cart[uid];
         renderCart();
+        syncActiveSessionToFirebase();
     }
 }
 
 function clearCart() {
+    if (sessionPaid) {
+        alert("Cart is already paid. Modifications locked.");
+        return;
+    }
     cart = {};
     renderCart();
+    syncActiveSessionToFirebase();
 }
 
 // -------------------------------------------------------------------------
@@ -316,6 +420,127 @@ function setShoppingBudget(amount) {
     }
 }
 
+// Calculate expected weight in grams based on all scanned items
+function getExpectedCartWeight() {
+    return Object.values(cart).reduce((sum, item) => {
+        const wt = Number(item.weight_grams || 250);
+        return sum + (wt * item.quantity);
+    }, 0);
+}
+
+// Update the 5kg Load Cell Verification UI Card
+function updateLoadSensorVerification(actualWeight) {
+    currentCartActualWeight = Number(actualWeight || 0);
+    const expectedWeight = getExpectedCartWeight();
+
+    const actualEl = $("cartActualWeight");
+    const expectedEl = $("cartExpectedWeight");
+    const badge = $("weightStatusBadge");
+    const bar = $("weightProgressBar");
+    const alertMsg = $("weightAlertMsg");
+
+    if (actualEl) actualEl.textContent = `${currentCartActualWeight}g`;
+    if (expectedEl) expectedEl.textContent = `${expectedWeight}g expected`;
+
+    const delta = Math.abs(currentCartActualWeight - expectedWeight);
+    const TOLERANCE_GRAMS = 35; // 35g tolerance for packaging variance
+
+    // Weight mismatch threshold (> 35g difference)
+    if (delta > TOLERANCE_GRAMS && (expectedWeight > 0 || currentCartActualWeight > 20)) {
+        if (badge) {
+            badge.className = "text-[10px] font-black px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 animate-pulse";
+            badge.textContent = "MISMATCH / THEFT ALERT";
+        }
+        if (bar) {
+            bar.className = "bg-rose-500 h-2 rounded-full transition-all duration-500 animate-pulse";
+            bar.style.width = "100%";
+        }
+        if (alertMsg) {
+            alertMsg.className = "text-[11px] mt-2 font-bold text-rose-600 flex items-center gap-1";
+            alertMsg.innerHTML = `<i class="fas fa-triangle-exclamation"></i><span>Unscanned item or weight difference: ${delta}g</span>`;
+        }
+        triggerSecurityAlert(
+            "Security Alert: Weight Mismatch Detected",
+            `Cart sensor weight (${currentCartActualWeight}g) does not tally with your scanned items (${expectedWeight}g). Difference: ${delta}g.`
+        );
+    } else {
+        if (badge) {
+            badge.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700";
+            badge.textContent = "MATCHED";
+        }
+        if (bar) {
+            bar.className = "bg-emerald-500 h-2 rounded-full transition-all duration-500";
+            bar.style.width = "100%";
+        }
+        if (alertMsg) {
+            alertMsg.className = "text-[11px] mt-2 font-medium text-emerald-600 flex items-center gap-1";
+            alertMsg.innerHTML = `<i class="fas fa-shield-check"></i><span>Trolley weight matches scanned items list</span>`;
+        }
+    }
+}
+
+function triggerSecurityAlert(title, message) {
+    const banner = $("securityAlertBanner");
+    const titleEl = $("securityAlertTitle");
+    const descEl = $("securityAlertDesc");
+
+    if (titleEl) titleEl.textContent = title;
+    if (descEl) descEl.textContent = message;
+    if (banner) banner.classList.remove("hidden");
+
+    // Also notify Firebase session about security alert
+    if (idToken) {
+        fetch(`${CONFIG.dbUrl}/active_sessions/TRL-01/security_alert.json?auth=${idToken}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                alert: true,
+                title: title,
+                message: message,
+                timestamp: Date.now()
+            })
+        }).catch(() => {});
+    }
+}
+
+function dismissSecurityBanner() {
+    const banner = $("securityAlertBanner");
+    if (banner) banner.classList.add("hidden");
+    if (idToken) {
+        fetch(`${CONFIG.dbUrl}/active_sessions/TRL-01/security_alert.json?auth=${idToken}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(null)
+        }).catch(() => {});
+    }
+}
+
+function updateUserDisplay() {
+    const nameEl = $("userSessionName");
+    if (nameEl) nameEl.textContent = currentUserId;
+    localStorage.setItem("trolley_user_id", currentUserId);
+}
+
+function openUserModal() {
+    const modal = $("userLoginModal");
+    const input = $("userIdInput");
+    if (input) input.value = currentUserId;
+    if (modal) modal.showModal();
+}
+
+function closeUserModal() {
+    const modal = $("userLoginModal");
+    if (modal) modal.close();
+}
+
+function quickSelectUser(uid) {
+    const input = $("userIdInput");
+    if (input) input.value = uid;
+}
+
+window.quickSelectUser = quickSelectUser;
+window.dismissSecurityBanner = dismissSecurityBanner;
+
 function renderCart() {
     const items = Object.values(cart);
     const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -323,6 +548,9 @@ function renderCart() {
 
     // Update budget tracker
     updateBudgetTracker(subtotal);
+
+    // Update load sensor tally
+    updateLoadSensorVerification(currentCartActualWeight || getExpectedCartWeight());
 
     // Trigger AI Smart Recipe check
     checkRecipeRecommendation();
@@ -446,10 +674,27 @@ async function processCheckout() {
             });
         }
 
+        // Update active session state in Firebase to PAID so ESP32 locks any further scans
+        sessionPaid = true;
+        await fetch(`${CONFIG.dbUrl}/active_sessions/TRL-01.json?auth=${idToken}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                status: "PAID",
+                user_id: currentUserId,
+                paid: true,
+                paid_at: Date.now(),
+                receipt_id: receiptId,
+                final_amount: subtotal
+            })
+        });
+
         $("receiptNumber").textContent = `#${receiptId}`;
         $("receiptDate").textContent = new Date().toLocaleString("en-IN");
         $("receiptAmount").textContent = `₹${subtotal.toFixed(2)}`;
         $("receiptModal").showModal();
+
+        speakText("Payment successful. Thank you for shopping with Smart Cart!");
 
         cart = {};
         renderCart();
@@ -1299,6 +1544,28 @@ function setupEventListeners() {
         });
     }
 
+    // User Session Login Listeners
+    const userBtn = $("userSessionBtn");
+    if (userBtn) userBtn.addEventListener("click", openUserModal);
+
+    const userForm = $("userLoginForm");
+    if (userForm) {
+        userForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const input = $("userIdInput");
+            if (input && input.value.trim()) {
+                currentUserId = input.value.trim().toUpperCase();
+                updateUserDisplay();
+                sessionPaid = false; // Reset session for new user
+                cart = {};
+                renderCart();
+                syncActiveSessionToFirebase();
+                closeUserModal();
+                speakText(`Welcome, ${currentUserId}. Your shopping cart is ready.`);
+            }
+        });
+    }
+
     // Hands-Free Wake-Word Toggle Button
     $("wakeWordToggleBtn")?.addEventListener("click", toggleWakeWord);
 
@@ -1308,6 +1575,7 @@ function setupEventListeners() {
 // Initial Boot Sequence (runs when DOM is loaded)
 async function init() {
     setupEventListeners();
+    updateUserDisplay();
     updateBudgetTracker(0);
 
     // Warm, calm welcoming voice greeting on opening
@@ -1327,9 +1595,11 @@ async function init() {
     if (success) {
         loadProducts();
         pollScanHistory();
+        syncActiveSessionToFirebase();
 
         setInterval(loadProducts, 15000);
         setInterval(pollScanHistory, 800);
+        setInterval(pollActiveSessionFeedback, 1000);
     }
 }
 

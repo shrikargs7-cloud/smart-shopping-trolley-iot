@@ -257,6 +257,46 @@
                 </div>
             </section>
 
+            <!-- 🛡️ Real-Time Smart Trolley Fleet & Anti-Theft Security Monitor -->
+            <section id="trolleySecuritySection" class="bg-white rounded-2xl border border-slate-200/70 shadow-sm p-6 flex flex-col gap-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-base font-black text-slate-900 tracking-tight flex items-center space-x-2">
+                            <i class="fas fa-shield-halved text-brand-600"></i>
+                            <span>Smart Trolley Fleet &amp; Anti-Theft Security System</span>
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Real-time load-cell weight verification (5kg sensor), active user sessions &amp; checkout lockout monitor</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span id="fleetSecurityStatusBadge" class="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center space-x-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>All Trolleys Secure</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Anti-Theft Security Banner (Hidden by default, shown when alert is active) -->
+                <div id="adminTheftAlertBanner" class="hidden p-4 rounded-xl bg-rose-50 border-2 border-rose-500/80 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-pulse">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center text-lg font-black shrink-0 shadow-md shadow-rose-600/30">
+                            <i class="fas fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <p id="adminTheftTitle" class="font-black text-rose-900 text-sm">SECURITY ALERT TRIGGERED</p>
+                            <p id="adminTheftDesc" class="text-rose-700 text-xs mt-0.5 font-medium">Trolley TRL-01 load cell detected weight mismatch or post-payment scan attempt.</p>
+                        </div>
+                    </div>
+                    <button onclick="clearTrolleyAlert('TRL-01')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-sm shrink-0">
+                        Dismiss / Reset Alarm
+                    </button>
+                </div>
+
+                <!-- Active Trolley Fleet Cards Grid -->
+                <div id="activeTrolleysGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Populated dynamically by dashboard.js -->
+                </div>
+            </section>
+
             <!-- Product Inventory Main Card -->
             <section class="bg-white rounded-2xl border border-slate-200/70 shadow-sm p-6 flex flex-col gap-6">
 
