@@ -1143,37 +1143,50 @@ function cleanConversationalText(text) {
         .trim();
 }
 
-function findBestHighPitchClearVoice() {
+const LEGACY_ROBOTIC_BLACKLIST = [
+    "victoria", "fred", "junior", "kathy", "princess", "vicki", "whisper",
+    "zarvox", "bells", "boing", "cellos", "deranged", "good news",
+    "hysterical", "pipe organ", "trinoids", "bad news", "bahh", "albert", "ralph", "bruce", "agnes"
+];
+
+function isBlacklistedVoice(name) {
+    const lower = (name || "").toLowerCase();
+    return LEGACY_ROBOTIC_BLACKLIST.some(b => lower.includes(b));
+}
+
+function findBestAlexaVoice() {
     if (!availableVoices || availableVoices.length === 0) {
         loadVoices();
     }
 
-    // High-clarity, naturally bright and clear female voices (especially on macOS / Chrome)
-    const highPitchClearVoices = [
-        "Victoria",                         // macOS: crisp, naturally high-pitched, crystal-clear enunciation
-        "Samantha",                         // macOS/iOS: bright, iconic Siri voice
-        "Google US English",                // Chrome: bright, crystal-clear enunciation
-        "Google UK English Female",         // Chrome: sharp, articulate British female voice
-        "Karen",                            // macOS: bright, high-clarity assistant
-        "Microsoft Jenny Online (Natural)", // Windows: bright, crisp neural voice
-        "Microsoft Aria Online (Natural)",  // Windows: clear conversational female voice
+    const alexaStyleVoices = [
+        "Samantha",                         // macOS/iOS - iconic, natural, smooth assistant
+        "Ava",                              // macOS neural - hyper-realistic Alexa-like assistant
+        "Google US English",                // Chrome/Android - standard fluent, crisp assistant
+        "Microsoft Jenny Online (Natural)", // Edge/Windows - modern neural Alexa-like voice
+        "Microsoft Aria Online (Natural)",  // Edge/Windows - conversational assistant
         "Siri",                             // Apple Siri voice
-        "Moira",
-        "Tessa"
+        "Zoe",                              // macOS natural voice
+        "Allison",                          // macOS natural voice
+        "Google UK English Female",         // Chrome natural
+        "Karen"                             // macOS clean assistant
     ];
 
-    for (const name of highPitchClearVoices) {
-        const found = availableVoices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+    for (const name of alexaStyleVoices) {
+        const found = availableVoices.find(v => 
+            v.name.toLowerCase().includes(name.toLowerCase()) && !isBlacklistedVoice(v.name)
+        );
         if (found) return found;
     }
 
     const femaleVoice = availableVoices.find(v => 
         (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("natural") || v.name.toLowerCase().includes("siri")) && 
-        v.lang.startsWith("en")
+        v.lang.startsWith("en") && 
+        !isBlacklistedVoice(v.name)
     );
     if (femaleVoice) return femaleVoice;
 
-    return availableVoices.find(v => v.lang.startsWith("en")) || null;
+    return availableVoices.find(v => v.lang.startsWith("en") && !isBlacklistedVoice(v.name)) || null;
 }
 
 function playAssistantChime(isStartMic = false) {
@@ -1225,12 +1238,12 @@ function speakText(text) {
         if (!cleanText) return;
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        // Natural normal conversational acoustic tuning:
-        utterance.pitch = 1.04;  // Warm, natural conversational pitch
-        utterance.rate = 1.08;   // Natural normal conversational speed
+        // Alexa-Style Natural Conversational Speed & Tone:
+        utterance.pitch = 1.0;   // Neutral, authentic human tone (no pitch distortion)
+        utterance.rate = 1.15;   // Brisk, confident Alexa conversational pace
         utterance.volume = 1.0;
 
-        const voice = findBestHighPitchClearVoice();
+        const voice = findBestAlexaVoice();
         if (voice) {
             utterance.voice = voice;
             utterance.lang = voice.lang;

@@ -1278,6 +1278,55 @@ function cleanConversationalText(text) {
         .trim();
 }
 
+const LEGACY_ROBOTIC_BLACKLIST = [
+    "victoria", "fred", "junior", "kathy", "princess", "vicki", "whisper",
+    "zarvox", "bells", "boing", "cellos", "deranged", "good news",
+    "hysterical", "pipe organ", "trinoids", "bad news", "bahh", "albert", "ralph", "bruce", "agnes"
+];
+
+function isBlacklistedVoice(name) {
+    const lower = (name || "").toLowerCase();
+    return LEGACY_ROBOTIC_BLACKLIST.some(b => lower.includes(b));
+}
+
+function findBestAlexaVoice() {
+    if (!availableVoices || availableVoices.length === 0) {
+        loadVoices();
+    }
+
+    // Alexa / Modern Assistant voices ranked by naturalness and speed:
+    const alexaStyleVoices = [
+        "Samantha",                         // macOS/iOS - iconic, natural, smooth assistant
+        "Ava",                              // macOS neural - hyper-realistic Alexa-like assistant
+        "Google US English",                // Chrome/Android - standard fluent, crisp assistant
+        "Microsoft Jenny Online (Natural)", // Edge/Windows - modern neural Alexa-like voice
+        "Microsoft Aria Online (Natural)",  // Edge/Windows - conversational assistant
+        "Siri",                             // Apple Siri voice
+        "Zoe",                              // macOS natural voice
+        "Allison",                          // macOS natural voice
+        "Google UK English Female",         // Chrome natural
+        "Karen"                             // macOS clean assistant
+    ];
+
+    for (const name of alexaStyleVoices) {
+        const found = availableVoices.find(v => 
+            v.name.toLowerCase().includes(name.toLowerCase()) && !isBlacklistedVoice(v.name)
+        );
+        if (found) return found;
+    }
+
+    // Next, look for any female/natural English voice that is not blacklisted
+    const femaleVoice = availableVoices.find(v => 
+        (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("natural") || v.name.toLowerCase().includes("siri")) && 
+        v.lang.startsWith("en") && 
+        !isBlacklistedVoice(v.name)
+    );
+    if (femaleVoice) return femaleVoice;
+
+    // Filter out blacklisted robotic voices
+    return availableVoices.find(v => v.lang.startsWith("en") && !isBlacklistedVoice(v.name)) || null;
+}
+
 function findBestVoiceForLanguage(langCode) {
     if (!availableVoices || availableVoices.length === 0) {
         loadVoices();
@@ -1286,11 +1335,11 @@ function findBestVoiceForLanguage(langCode) {
     const prefix = target.split("-")[0];
 
     // Priority 1: Exact language match (e.g., "hi-in", "kn-in", "te-in", "ta-in")
-    let voice = availableVoices.find(v => v.lang.toLowerCase() === target);
+    let voice = availableVoices.find(v => v.lang.toLowerCase() === target && !isBlacklistedVoice(v.name));
     if (voice) return voice;
 
     // Priority 2: Prefix match (e.g., starts with "hi", "kn", "te", "ta")
-    voice = availableVoices.find(v => v.lang.toLowerCase().startsWith(prefix));
+    voice = availableVoices.find(v => v.lang.toLowerCase().startsWith(prefix) && !isBlacklistedVoice(v.name));
     if (voice) return voice;
 
     // Priority 3: Name match (e.g. voice name contains "Hindi", "Kannada", etc.)
@@ -1299,55 +1348,22 @@ function findBestVoiceForLanguage(langCode) {
         "kn": ["kannada", "sapna"],
         "te": ["telugu", "chitra", "mohan"],
         "ta": ["tamil", "valluvar"],
-        "en": ["victoria", "samantha", "google us english", "karen"]
+        "en": ["samantha", "ava", "google us english", "jenny", "aria", "siri", "karen"]
     };
     if (nameMap[prefix]) {
         for (const token of nameMap[prefix]) {
-            voice = availableVoices.find(v => v.name.toLowerCase().includes(token));
+            voice = availableVoices.find(v => v.name.toLowerCase().includes(token) && !isBlacklistedVoice(v.name));
             if (voice) return voice;
         }
     }
 
-    // For English, use high pitch clear voice
+    // For English, use top Alexa/Siri style voice
     if (prefix === "en") {
-        return findBestHighPitchClearVoice();
+        return findBestAlexaVoice();
     }
 
-    // Default fallback
-    return availableVoices.find(v => v.lang.startsWith("en")) || null;
-}
-
-function findBestHighPitchClearVoice() {
-    if (!availableVoices || availableVoices.length === 0) {
-        loadVoices();
-    }
-
-    // High-clarity, naturally bright and clear female voices (especially on macOS / Chrome)
-    const highPitchClearVoices = [
-        "Victoria",                         // macOS: crisp, naturally high-pitched, crystal-clear enunciation
-        "Samantha",                         // macOS/iOS: bright, iconic Siri voice
-        "Google US English",                // Chrome: bright, crystal-clear enunciation
-        "Google UK English Female",         // Chrome: sharp, articulate British female voice
-        "Karen",                            // macOS: bright, high-clarity assistant
-        "Microsoft Jenny Online (Natural)", // Windows: bright, crisp neural voice
-        "Microsoft Aria Online (Natural)",  // Windows: clear conversational female voice
-        "Siri",                             // Apple Siri voice
-        "Moira",
-        "Tessa"
-    ];
-
-    for (const name of highPitchClearVoices) {
-        const found = availableVoices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
-        if (found) return found;
-    }
-
-    const femaleVoice = availableVoices.find(v => 
-        (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("natural") || v.name.toLowerCase().includes("siri")) && 
-        v.lang.startsWith("en")
-    );
-    if (femaleVoice) return femaleVoice;
-
-    return availableVoices.find(v => v.lang.startsWith("en")) || null;
+    // Default fallback (ensure not blacklisted)
+    return availableVoices.find(v => v.lang.startsWith("en") && !isBlacklistedVoice(v.name)) || null;
 }
 
 function speakText(text, explicitLang) {
@@ -1372,13 +1388,13 @@ function speakText(text, explicitLang) {
             utterance.lang = voice.lang;
         }
 
-        // Natural conversational acoustic tuning:
+        // Alexa-Style Natural Conversational Speed & Tone:
         if (lang.startsWith("en")) {
-            utterance.pitch = 1.04;  // Warm, natural conversational pitch
-            utterance.rate = 1.08;   // Natural normal conversational speed
+            utterance.pitch = 1.0;   // Neutral, authentic human timbre (no artificial pitch strain)
+            utterance.rate = 1.15;   // Brisk, confident Alexa conversational pace (never slow-motion)
         } else {
-            utterance.pitch = 1.02;  // Natural human pitch for Indic languages
-            utterance.rate = 1.05;   // Fluent, natural regional speaking pace
+            utterance.pitch = 1.0;   // Neutral regional human pitch
+            utterance.rate = 1.10;   // Fluent, natural regional speaking pace
         }
         utterance.volume = 1.0;
 
