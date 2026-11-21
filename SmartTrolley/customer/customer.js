@@ -1372,13 +1372,13 @@ function speakText(text, explicitLang) {
             utterance.lang = voice.lang;
         }
 
-        // Multilingual acoustic tuning:
+        // Natural conversational acoustic tuning:
         if (lang.startsWith("en")) {
-            utterance.pitch = 1.22;  // High, bright, energetic feminine pitch
-            utterance.rate = 0.98;   // Measured, articulate pacing
+            utterance.pitch = 1.04;  // Warm, natural conversational pitch
+            utterance.rate = 1.08;   // Natural normal conversational speed
         } else {
-            utterance.pitch = 1.05;  // Natural pitch for Indic languages
-            utterance.rate = 0.95;   // Clear phonetic pacing
+            utterance.pitch = 1.02;  // Natural human pitch for Indic languages
+            utterance.rate = 1.05;   // Fluent, natural regional speaking pace
         }
         utterance.volume = 1.0;
 

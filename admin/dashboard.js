@@ -1225,9 +1225,9 @@ function speakText(text) {
         if (!cleanText) return;
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        // High-pitched, articulate acoustic tuning:
-        utterance.pitch = 1.22;  // High, bright, energetic feminine pitch
-        utterance.rate = 0.98;   // Measured, articulate pacing so every word is emitted with sharp clarity
+        // Natural normal conversational acoustic tuning:
+        utterance.pitch = 1.04;  // Warm, natural conversational pitch
+        utterance.rate = 1.08;   // Natural normal conversational speed
         utterance.volume = 1.0;
 
         const voice = findBestHighPitchClearVoice();
