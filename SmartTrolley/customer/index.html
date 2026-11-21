@@ -40,6 +40,20 @@
                     <span id="wakeWordText">Hey Aura: ON</span>
                 </button>
 
+                <!-- Multilingual Voice Agent Selector -->
+                <div class="relative inline-flex items-center shrink-0">
+                    <select id="languageSelect" title="Select Voice Agent Language"
+                            class="appearance-none bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] sm:text-xs py-1 sm:py-1.5 pl-6 sm:pl-7 pr-6 rounded-full border border-white/20 focus:outline-none focus:ring-1 focus:ring-white/40 cursor-pointer transition">
+                        <option value="en-IN" class="text-slate-800">🌐 English</option>
+                        <option value="hi-IN" class="text-slate-800">🇮🇳 हिंदी (Hindi)</option>
+                        <option value="kn-IN" class="text-slate-800">🟡 ಕನ್ನಡ (Kannada)</option>
+                        <option value="te-IN" class="text-slate-800">🇮🇳 తెలుగు (Telugu)</option>
+                        <option value="ta-IN" class="text-slate-800">🇮🇳 தமிழ் (Tamil)</option>
+                    </select>
+                    <span class="absolute left-2 text-[10px] sm:text-[11px] pointer-events-none">🗣️</span>
+                    <i class="fas fa-chevron-down absolute right-2 text-[8px] text-blue-200 pointer-events-none"></i>
+                </div>
+
                 <div class="flex items-center space-x-1.5 sm:space-x-2 bg-black/25 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs border border-white/10 shrink-0">
                     <span id="statusDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
                     <span id="statusText">Connecting...</span>
@@ -387,6 +401,6 @@
     </dialog>
 
     <script src="config.local.js"></script>
-    <script src="customer.js?v=9"></script>
+    <script src="customer.js?v=10"></script>
 </body>
 </html>

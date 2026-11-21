@@ -31,6 +31,124 @@ let sessionPaid = false;
 let currentCartActualWeight = 0;
 let lastSecurityAlertState = false;
 
+// Multilingual Voice Agent Configuration & Translation Matrix
+let currentLanguage = localStorage.getItem("trolley_language") || "en-IN";
+
+const TRANSLATIONS = {
+    "en-IN": {
+        welcome_morning: "Good morning, and welcome to Smart Mart! I am Aura, your personal AI shopping agent. How may I assist you today?",
+        welcome_afternoon: "Good afternoon, and welcome to Smart Mart! I am Aura, your personal AI shopping agent. How may I assist you today?",
+        welcome_evening: "Good evening, and welcome to Smart Mart! I am Aura, your personal AI shopping agent. How may I assist you today?",
+        lang_switched: "Voice agent language switched to English. How may I help you?",
+        added_to_cart: "Added {name} to your cart.",
+        already_scanned: "Notice: {name} has already been scanned in your basket.",
+        scan_locked_paid: "Warning: Payment is already completed. New items cannot be scanned.",
+        weight_mismatch: "Security warning: Cart weight mismatch detected. Please verify your items.",
+        budget_50: "Notice: You have reached 50 percent of your shopping budget.",
+        budget_90: "Warning: You have reached 90 percent of your budget.",
+        budget_100: "Alert: You have exceeded your shopping budget.",
+        checkout_success: "Payment successful. Thank you for shopping with Smart Cart!",
+        listening: "Listening in English... Speak now!",
+        user_ready: "Welcome, {user}. Your shopping cart is ready."
+    },
+    "hi-IN": {
+        welcome_morning: "सुप्रभात! स्मार्ट मार्ट में आपका स्वागत है। मैं ऑरा हूँ, आपकी AI शॉपिंग सहायक। आज मैं आपकी क्या मदद कर सकती हूँ?",
+        welcome_afternoon: "नमस्ते! स्मार्ट मार्ट में आपका स्वागत है। मैं ऑरा हूँ, आपकी AI शॉपिंग सहायक। आज मैं आपकी क्या मदद कर सकती हूँ?",
+        welcome_evening: "शुभ संध्या! स्मार्ट मार्ट में आपका स्वागत है। मैं ऑरा हूँ, आपकी AI शॉपिंग सहायक। आज मैं आपकी क्या मदद कर सकती हूँ?",
+        lang_switched: "वॉइस असिस्टेंट की भाषा बदलकर हिंदी कर दी गई है। मैं आपकी क्या सेवा करूँ?",
+        added_to_cart: "{name} आपके कार्ट में जोड़ दिया गया है।",
+        already_scanned: "सूचना: {name} पहले ही आपके कार्ट में स्कैन हो चुका है।",
+        scan_locked_paid: "चेतावनी: भुगतान पूरा हो चुका है। नई वस्तुएं स्कैन नहीं की जा सकतीं।",
+        weight_mismatch: "सुरक्षा चेतावनी: ट्रॉली के वजन में अंतर पाया गया है। कृपया अपनी टोकरी जांचें।",
+        budget_50: "सूचना: आपने अपने बजट का 50 प्रतिशत खर्च कर लिया है।",
+        budget_90: "चेतावनी: आप अपने बजट के 90 प्रतिशत तक पहुँच चुके हैं।",
+        budget_100: "अलर्ट: आपका शॉपिंग बजट समाप्त हो चुका है।",
+        checkout_success: "भुगतान सफल रहा। स्मार्ट कार्ट के साथ खरीदारी करने के लिए धन्यवाद!",
+        listening: "हिंदी में सुन रही हूँ... बोलिए!",
+        user_ready: "नमस्ते {user}! आपका शॉपिंग कार्ट तैयार है।"
+    },
+    "kn-IN": {
+        welcome_morning: "ಶುಭೋದಯ! ಸ್ಮಾರ್ಟ್ ಮಾರ್ಟ್‌ಗೆ ಸುಸ್ವಾಗತ. ನಾನು ಔರಾ, ನಿಮ್ಮ AI ಶಾಪಿಂಗ್ ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+        welcome_afternoon: "ನಮಸ್ಕಾರ! ಸ್ಮಾರ್ಟ್ ಮಾರ್ಟ್‌ಗೆ ಸುಸ್ವಾಗತ. ನಾನು ಔರಾ, ನಿಮ್ಮ AI ಶಾಪಿಂಗ್ ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+        welcome_evening: "ಶುಭ ಸಂಜೆ! ಸ್ಮಾರ್ಟ್ ಮಾರ್ಟ್‌ಗೆ ಸುಸ್ವಾಗತ. ನಾನು ಔರಾ, ನಿಮ್ಮ AI ಶಾಪಿಂಗ್ ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+        lang_switched: "ಧ್ವನಿ ಸಹಾಯಕ ಭಾಷೆಯನ್ನು ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ. ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+        added_to_cart: "{name} ನಿಮ್ಮ ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಲಾಗಿದೆ.",
+        already_scanned: "ಗಮನಿಸಿ: {name} ಈಗಾಗಲೇ ನಿಮ್ಮ ಕಾರ್ಟ್‌ನಲ್ಲಿ ಸ್ಕ್ಯಾನ್ ಆಗಿದೆ.",
+        scan_locked_paid: "ಎಚ್ಚರಿಕೆ: ಪಾವತಿ ಈಗಾಗಲೇ ಪೂರ್ಣಗೊಂಡಿದೆ. ಹೊಸ ವಸ್ತುಗಳನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+        weight_mismatch: "ಭದ್ರತಾ ಎಚ್ಚರಿಕೆ: ಟ್ರಾಲಿ ತೂಕದಲ್ಲಿ ವ್ಯತ್ಯಾಸ ಕಂಡುಬಂದಿದೆ. ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ.",
+        budget_50: "ಸೂಚನೆ: ನಿಮ್ಮ ಬಜೆಟ್‌ನ ಶೇಕಡಾ 50 ರಷ್ಟು ಖರ್ಚಾಗಿದೆ.",
+        budget_90: "ಎಚ್ಚರಿಕೆ: ನಿಮ್ಮ ಬಜೆಟ್‌ನ ಶೇಕಡಾ 90 ರಷ್ಟನ್ನು ತಲುಪಿದ್ದೀರಿ.",
+        budget_100: "ಎಚ್ಚರಿಕೆ: ನಿಮ್ಮ ಶಾಪಿಂಗ್ ಬಜೆಟ್ ಮೀರಿದೆ.",
+        checkout_success: "ಪಾವತಿ ಯಶಸ್ವಿಯಾಗಿದೆ. ಸ್ಮಾರ್ಟ್ ಕಾರ್ಟ್ ಜೊತೆ ಶಾಪಿಂಗ್ ಮಾಡಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು!",
+        listening: "ಕನ್ನಡದಲ್ಲಿ ಆಲಿಸಲಾಗುತ್ತಿದೆ... ಮಾತನಾಡಿ!",
+        user_ready: "ಸುಸ್ವಾಗತ {user}! ನಿಮ್ಮ ಶಾಪಿಂಗ್ ಕಾರ್ಟ್ ಸಿದ್ಧವಾಗಿದೆ."
+    },
+    "te-IN": {
+        welcome_morning: "శుభోదయం! స్మార్ట్ మార్ట్‌కి స్వాగతం. నేను ఆరా, మీ AI షాపింగ్ అసిస్టెంట్. నేను మీకు ఎలా సహాయపడగలను?",
+        welcome_afternoon: "నమస్కారం! స్మార్ట్ మార్ట్‌కి స్వాగతం. నేను ఆరా, మీ AI షాపింగ్ అసిస్టెంట్. నేను మీకు ఎలా సహాయపడగలను?",
+        welcome_evening: "శుభ సాయంత్రం! స్మార్ట్ మార్ట్‌కి స్వాగతం. నేను ఆరా, మీ AI షాపింగ్ అసిస్టెంట్. నేను మీకు ఎలా సహాయపడగలను?",
+        lang_switched: "వాయిస్ అసిస్టెంట్ భాష తెలుగులోకి మార్చబడింది. నేను మీకు ఎలా సహాయపడగలను?",
+        added_to_cart: "{name} మీ కార్ట్‌కు జోడించబడింది.",
+        already_scanned: "గమనిక: {name} ఇప్పటికే మీ కార్ట్‌లో స్కాన్ చేయబడింది.",
+        scan_locked_paid: "హెచ్చరిక: చెల్లింపు ఇప్పటికే పూర్తయింది. కొత్త వస్తువులను స్కాన్ చేయలేరు.",
+        weight_mismatch: "భద్రతా హెచ్చరిక: ట్రాలీ బరువులో తేడా గుర్తించబడింది.",
+        budget_50: "గమనిక: మీరు మీ బడ్జెట్‌లో 50 శాతం ఖర్చు చేశారు.",
+        budget_90: "హెచ్చరిక: మీరు మీ బడ్జెట్‌లో 90 శాతానికి చేరుకున్నారు.",
+        budget_100: "హెచ్చరిక: మీరు మీ షాపింగ్ బడ్జెట్‌ను మించిపోయారు.",
+        checkout_success: "చెల్లింపు విజయవంతమైంది. స్మార్ట్ కార్ట్‌తో షాపింగ్ చేసినందుకు ధన్యవాదాలు!",
+        listening: "తెలుగులో వింటున్నాను... మాట్లాడండి!",
+        user_ready: "స్వాగతం {user}! మీ కార్ట్ సిద్ధంగా ఉంది."
+    },
+    "ta-IN": {
+        welcome_morning: "காலை வணக்கம்! ஸ்மார்ட் மார்ட்டிற்கு வரவேற்கிறோம். நான் ஆரா, உங்கள் AI ஷாப்பிங் உதவியாளர். நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+        welcome_afternoon: "வணக்கம்! ஸ்மார்ட் மார்ட்டிற்கு வரவேற்கிறோம். நான் ஆரா, உங்கள் AI ஷாப்பிங் உதவியாளர். நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+        welcome_evening: "மாலை வணக்கம்! ஸ்மார்ட் மார்ட்டிற்கு வரவேற்கிறோம். நான் ஆரா, உங்கள் AI ஷாப்பிங் உதவியாளர். நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+        lang_switched: "குரல் உதவியாளர் மொழி தமிழுக்கு மாற்றப்பட்டது. நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+        added_to_cart: "{name} உங்கள் கூடையில் சேர்க்கப்பட்டது.",
+        already_scanned: "அறிவிப்பு: {name} ஏற்கனவே உங்கள் கூடையில் ஸ்கேன் செய்யப்பட்டுள்ளது.",
+        scan_locked_paid: "எச்சரிக்கை: கட்டணம் ஏற்கனவே செலுத்தப்பட்டுவிட்டது. புதிய பொருட்களை ஸ்கேன் செய்ய முடியாது.",
+        weight_mismatch: "பாதுகாப்பு எச்சரிக்கை: வண்டி எடையில் முரண்பாடு கண்டறியப்பட்டது.",
+        budget_50: "அறிவிப்பு: உங்கள் பட்ஜெட்டில் 50 சதவீதத்தை அடைந்துவிட்டீர்கள்.",
+        budget_90: "எச்சரிக்கை: உங்கள் பட்ஜெட்டில் 90 சதவீதத்தை அடைந்துவிட்டீர்கள்.",
+        budget_100: "எச்சரிக்கை: உங்கள் பட்ஜெட்டைத் தாண்டிவிட்டீர்கள்.",
+        checkout_success: "கட்டணம் வெற்றிகரமாக முடிந்தது. ஸ்மார்ட் கார்ட்டில் வாங்கியதற்கு நன்றி!",
+        listening: "தமிழில் கேட்கிறேன்... பேசுங்கள்!",
+        user_ready: "வரவேற்கிறோம் {user}! உங்கள் கூடை தயாராக உள்ளது."
+    }
+};
+
+function getLocalizedText(key, params = {}) {
+    const langDict = TRANSLATIONS[currentLanguage] || TRANSLATIONS["en-IN"];
+    let text = langDict[key] || TRANSLATIONS["en-IN"][key] || "";
+    for (const [k, v] of Object.entries(params)) {
+        text = text.replace(new RegExp(`\\{${k}\\}`, "g"), v);
+    }
+    return text;
+}
+
+function setLanguage(langCode) {
+    if (!TRANSLATIONS[langCode]) langCode = "en-IN";
+    currentLanguage = langCode;
+    localStorage.setItem("trolley_language", langCode);
+
+    const select = $("languageSelect");
+    if (select && select.value !== langCode) {
+        select.value = langCode;
+    }
+
+    if (speechRecognizer) {
+        speechRecognizer.lang = currentLanguage;
+    }
+    if (wakeWordRecognizer) {
+        wakeWordRecognizer.lang = currentLanguage;
+    }
+
+    const confirmation = getLocalizedText("lang_switched");
+    speakText(confirmation, currentLanguage);
+}
+
+window.setLanguage = setLanguage;
+
 const $ = id => document.getElementById(id);
 
 function setStatus(text, ok) {
@@ -241,7 +359,7 @@ function addItemToCart(rawUid, fallbackName, fallbackPrice) {
             "Scan Blocked: Cart Already Paid",
             "Payment has already been processed for this session. Scanning new items is locked!"
         );
-        speakText("Warning: Payment is already completed. New items cannot be scanned.");
+        speakText(getLocalizedText("scan_locked_paid"), currentLanguage);
         return;
     }
 
@@ -258,7 +376,7 @@ function addItemToCart(rawUid, fallbackName, fallbackPrice) {
             "Item Already Scanned",
             `"${name}" (${uid}) is already scanned in your cart. Each item ID can only be scanned once!`
         );
-        speakText(`Notice: ${name} has already been scanned in your basket.`);
+        speakText(getLocalizedText("already_scanned", { name }), currentLanguage);
         return;
     }
 
@@ -272,7 +390,7 @@ function addItemToCart(rawUid, fallbackName, fallbackPrice) {
         weight_grams: weight
     };
 
-    speakText(`Added ${name} to your cart.`);
+    speakText(getLocalizedText("added_to_cart", { name }), currentLanguage);
     renderCart();
     syncActiveSessionToFirebase();
 }
@@ -345,7 +463,7 @@ function updateBudgetTracker(subtotal) {
                 alertMsg.innerHTML = `<i class="fas fa-triangle-exclamation"></i><span>🚨 Budget Exceeded by ₹${(subtotal - shoppingBudget).toFixed(2)}!</span>`;
             }
             if (!alertedMilestones[100]) {
-                speakText(`Alert: You have exceeded your shopping budget by ₹${(subtotal - shoppingBudget).toFixed(0)}.`);
+                speakText(getLocalizedText("budget_100"), currentLanguage);
                 alertedMilestones[100] = true;
             }
         } 
@@ -357,7 +475,7 @@ function updateBudgetTracker(subtotal) {
                 alertMsg.innerHTML = `<i class="fas fa-circle-exclamation"></i><span>⚠️ Warning: You've reached ${percentage.toFixed(0)}% of your ₹${shoppingBudget.toFixed(0)} budget! Only ₹${(shoppingBudget - subtotal).toFixed(2)} left.</span>`;
             }
             if (!alertedMilestones[90]) {
-                speakText(`Warning: You have reached 90% of your ₹${shoppingBudget.toFixed(0)} budget.`);
+                speakText(getLocalizedText("budget_90"), currentLanguage);
                 alertedMilestones[90] = true;
             }
             alertedMilestones[100] = false;
@@ -370,7 +488,7 @@ function updateBudgetTracker(subtotal) {
                 alertMsg.innerHTML = `<i class="fas fa-info-circle"></i><span>Notice: You've reached 50% of your budget (₹${subtotal.toFixed(2)} spent).</span>`;
             }
             if (!alertedMilestones[50]) {
-                speakText(`Notice: You have reached 50% of your shopping budget.`);
+                speakText(getLocalizedText("budget_50"), currentLanguage);
                 alertedMilestones[50] = true;
             }
             alertedMilestones[90] = false;
@@ -694,7 +812,7 @@ async function processCheckout() {
         $("receiptAmount").textContent = `₹${subtotal.toFixed(2)}`;
         $("receiptModal").showModal();
 
-        speakText("Payment successful. Thank you for shopping with Smart Cart!");
+        speakText(getLocalizedText("checkout_success"), currentLanguage);
 
         cart = {};
         renderCart();
@@ -771,7 +889,8 @@ async function askGeminiAssistant(userQuestion) {
                 body: JSON.stringify({
                     question: userQuestion,
                     catalog: catalogSummary,
-                    cart: cartSummary
+                    cart: cartSummary,
+                    language: currentLanguage
                 })
             });
             if (apiRes.ok) {
@@ -782,7 +901,10 @@ async function askGeminiAssistant(userQuestion) {
 
         // Priority 2: Direct client fetch fallback
         if (!rawReply && CONFIG.geminiKey) {
-            const systemPrompt = `You are Aura, an empathetic, calm, clear, and proactive AI Supermarket Shopping Agent.
+            const langInstruction = currentLanguage !== "en-IN" 
+                ? `\nIMPORTANT: The customer selected language is ${currentLanguage}. Respond in this language with high clarity. Keep any [ACTION: {...}] block in English JSON format at the very end.` 
+                : "";
+            const systemPrompt = `You are Aura, an empathetic, calm, clear, and proactive AI Supermarket Shopping Agent.${langInstruction}
 Catalog:
 ${catalogSummary}
 Customer Cart:
@@ -802,7 +924,7 @@ If the user commands an action (add item, remove item, clear cart, set budget, n
         }
 
         if (!rawReply) {
-            rawReply = "I understand. Let me help you find whatever you need in the store right away!";
+            rawReply = getLocalizedText("welcome_morning");
         }
 
         // Parse and execute agentic actions from response
@@ -821,7 +943,7 @@ If the user commands an action (add item, remove item, clear cart, set budget, n
 
         // Voice output (if not already spoken by local intent)
         if (!executedLocally) {
-            speakText(speechText);
+            speakText(speechText, currentLanguage);
         }
     } catch (err) {
         console.error("Gemini API error:", err);
@@ -1156,6 +1278,45 @@ function cleanConversationalText(text) {
         .trim();
 }
 
+function findBestVoiceForLanguage(langCode) {
+    if (!availableVoices || availableVoices.length === 0) {
+        loadVoices();
+    }
+    const target = (langCode || currentLanguage || "en-IN").toLowerCase();
+    const prefix = target.split("-")[0];
+
+    // Priority 1: Exact language match (e.g., "hi-in", "kn-in", "te-in", "ta-in")
+    let voice = availableVoices.find(v => v.lang.toLowerCase() === target);
+    if (voice) return voice;
+
+    // Priority 2: Prefix match (e.g., starts with "hi", "kn", "te", "ta")
+    voice = availableVoices.find(v => v.lang.toLowerCase().startsWith(prefix));
+    if (voice) return voice;
+
+    // Priority 3: Name match (e.g. voice name contains "Hindi", "Kannada", etc.)
+    const nameMap = {
+        "hi": ["hindi", "leka", "kalpana", "hemant"],
+        "kn": ["kannada", "sapna"],
+        "te": ["telugu", "chitra", "mohan"],
+        "ta": ["tamil", "valluvar"],
+        "en": ["victoria", "samantha", "google us english", "karen"]
+    };
+    if (nameMap[prefix]) {
+        for (const token of nameMap[prefix]) {
+            voice = availableVoices.find(v => v.name.toLowerCase().includes(token));
+            if (voice) return voice;
+        }
+    }
+
+    // For English, use high pitch clear voice
+    if (prefix === "en") {
+        return findBestHighPitchClearVoice();
+    }
+
+    // Default fallback
+    return availableVoices.find(v => v.lang.startsWith("en")) || null;
+}
+
 function findBestHighPitchClearVoice() {
     if (!availableVoices || availableVoices.length === 0) {
         loadVoices();
@@ -1189,7 +1350,7 @@ function findBestHighPitchClearVoice() {
     return availableVoices.find(v => v.lang.startsWith("en")) || null;
 }
 
-function speakText(text) {
+function speakText(text, explicitLang) {
     if (!speechEnabled || !('speechSynthesis' in window)) return;
     try {
         window.speechSynthesis.cancel(); // Stop any ongoing speech
@@ -1202,19 +1363,24 @@ function speakText(text) {
         if (!cleanText) return;
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
+        const lang = explicitLang || currentLanguage || "en-IN";
+        utterance.lang = lang;
 
-        // High-pitched, articulate acoustic tuning:
-        utterance.pitch = 1.22;  // High, bright, energetic feminine pitch
-        utterance.rate = 0.98;   // Measured, articulate pacing so every word is emitted with sharp clarity
-        utterance.volume = 1.0;
-
-        const voice = findBestHighPitchClearVoice();
+        const voice = findBestVoiceForLanguage(lang);
         if (voice) {
             utterance.voice = voice;
             utterance.lang = voice.lang;
-        } else {
-            utterance.lang = 'en-US';
         }
+
+        // Multilingual acoustic tuning:
+        if (lang.startsWith("en")) {
+            utterance.pitch = 1.22;  // High, bright, energetic feminine pitch
+            utterance.rate = 0.98;   // Measured, articulate pacing
+        } else {
+            utterance.pitch = 1.05;  // Natural pitch for Indic languages
+            utterance.rate = 0.95;   // Clear phonetic pacing
+        }
+        utterance.volume = 1.0;
 
         window.speechSynthesis.speak(utterance);
     } catch (err) {
@@ -1225,12 +1391,12 @@ function speakText(text) {
 // Welcoming voice greeting on opening / session start
 function speakWelcomeGreeting() {
     const hour = new Date().getHours();
-    const timeGreeting = hour < 12 ? "Good morning" : (hour < 17 ? "Good afternoon" : "Good evening");
-    const welcomeMessage = `${timeGreeting}, and welcome to Smart Mart Supermarket! I am Aura, your personal AI shopping agent. You can ask me to find products, add or remove items from your cart, or check you out anytime. Wishing you a peaceful shopping experience!`;
+    const timeKey = hour < 12 ? "welcome_morning" : (hour < 17 ? "welcome_afternoon" : "welcome_evening");
+    const welcomeMessage = getLocalizedText(timeKey);
     
-    // Play warm greeting
+    // Play warm greeting in selected language
     setTimeout(() => {
-        speakText(welcomeMessage);
+        speakText(welcomeMessage, currentLanguage);
     }, 1200);
 }
 
@@ -1244,7 +1410,7 @@ function initVoiceRecognition() {
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-GB';
+    recognition.lang = currentLanguage;
 
     recognition.onstart = () => {
         isRecognizing = true;
@@ -1255,7 +1421,7 @@ function initVoiceRecognition() {
             voiceBtn.innerHTML = `<i class="fas fa-stop"></i>`;
         }
         const input = $("aiChatInput");
-        if (input) input.placeholder = "Listening... Speak now!";
+        if (input) input.placeholder = getLocalizedText("listening");
     };
 
     recognition.onresult = (event) => {
@@ -1324,7 +1490,7 @@ function initWakeWordListener() {
     const recognizer = new SpeechRecognition();
     recognizer.continuous = true;
     recognizer.interimResults = true;
-    recognizer.lang = 'en-GB';
+    recognizer.lang = currentLanguage;
 
     recognizer.onresult = (event) => {
         if (isRecognizing) return;
@@ -1561,13 +1727,22 @@ function setupEventListeners() {
                 renderCart();
                 syncActiveSessionToFirebase();
                 closeUserModal();
-                speakText(`Welcome, ${currentUserId}. Your shopping cart is ready.`);
+                speakText(getLocalizedText("user_ready", { user: currentUserId }), currentLanguage);
             }
         });
     }
 
     // Hands-Free Wake-Word Toggle Button
     $("wakeWordToggleBtn")?.addEventListener("click", toggleWakeWord);
+
+    // Multilingual Voice Agent Language Selector Listener
+    const langSelect = $("languageSelect");
+    if (langSelect) {
+        langSelect.value = currentLanguage;
+        langSelect.addEventListener("change", (e) => {
+            setLanguage(e.target.value);
+        });
+    }
 
     setupAiChat();
 }
@@ -1577,6 +1752,9 @@ async function init() {
     setupEventListeners();
     updateUserDisplay();
     updateBudgetTracker(0);
+
+    const langSelect = $("languageSelect");
+    if (langSelect) langSelect.value = currentLanguage;
 
     // Warm, calm welcoming voice greeting on opening
     speakWelcomeGreeting();

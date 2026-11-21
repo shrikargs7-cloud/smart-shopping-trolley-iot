@@ -6,8 +6,8 @@
 // ====================================================
 // WIFI & FIREBASE CONFIG
 // ====================================================
-const char* WIFI_SSID     = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID     = "OnePlus";
+const char* WIFI_PASSWORD = "12345678";
 
 // Firebase Realtime Database URL
 const char* FIREBASE_URL = "https://inventory-fa492-default-rtdb.firebaseio.com";

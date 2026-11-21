@@ -11,10 +11,21 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { question, catalog, cart, role, mode } = req.body || {};
+  const { question, catalog, cart, role, mode, language } = req.body || {};
   if (!question) {
     return res.status(400).json({ error: 'Question is required' });
   }
+
+  // Language mapping
+  const langNames = {
+    'hi-IN': 'Hindi (हिंदी)',
+    'kn-IN': 'Kannada (ಕನ್ನಡ)',
+    'te-IN': 'Telugu (తెలుగు)',
+    'ta-IN': 'Tamil (தமிழ்)',
+    'en-IN': 'Indian English',
+    'en-US': 'English'
+  };
+  const targetLangName = langNames[language] || (language && language.startsWith('hi') ? 'Hindi' : (language && language.startsWith('kn') ? 'Kannada' : null));
 
   // Deobfuscate key to prevent GitGuardian/secret scanner regex while working out-of-the-box on Vercel
   const defaultKey = Buffer.from("QVEuQWI4Uk42S25WaEdaYmJhUW9STHYwcXBxNGpLS1YyUGgyUk1BdzNGOXloZkdVa2R3TUE=", "base64").toString("utf-8");
@@ -65,7 +76,7 @@ ${cart || 'Cart is currently empty'}
 
 RULES:
 - When performing an action, acknowledge it gently with sentiment and confirm what you did.
-- Always place the [ACTION: ...] block at the very end of your response so the client app can execute it smoothly.`;
+- Always place the [ACTION: ...] block at the very end of your response so the client app can execute it smoothly.${targetLangName ? `\n\nLANGUAGE REQUIREMENT:\nThe customer is speaking in ${targetLangName} (language code: ${language}). You MUST respond clearly and fluently in ${targetLangName} using its proper script so it can be spoken out loud via text-to-speech. Do NOT reply in English unless the user explicitly asks in English. IMPORTANT: Keep any [ACTION: {...}] block strictly in standard English JSON format at the very end.` : ''}`;
 
   const adminSystemPrompt = `You are "Aura", the intelligent, calm, articulate, and proactive AI Inventory Copilot for FreshCart Supermarket Store Management.
 You assist the store manager, warehouse supervisor, and staff with real-time stock levels, replenishment, supplier logistics, rush analytics, and store operations.
